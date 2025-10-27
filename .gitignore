@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Model files
+*.pth
+*.pt
+*.onnx
+
+# Environment
+.env
+*.DS_Store
+
+# Colab/Notebook artifacts
+.ipynb_checkpoints/
+*.csv
+*.json
+*.zip
+
+# IDEs
+.vscode/
+.idea/
