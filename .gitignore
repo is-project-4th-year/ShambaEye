@@ -21,3 +21,11 @@ __pycache__/
 # IDEs
 .vscode/
 .idea/
+
+# Ignore all model files by default
+/model/*
+
+# Allow final export files
+!model/tomato_disease_classifier_confidence.pt
+!model/class_names.json
+!model/treatment_advice.json
