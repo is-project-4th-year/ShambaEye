@@ -1,0 +1,73 @@
+{
+    "Tomato___Bacterial_spot": {
+      "type": "Bacterial Disease",
+      "symptoms": "Dark, water-soaked lesions on leaves and fruit.",
+      "organic_treatment": "Apply copper-based fungicides and use disease-free seeds.",
+      "chemical_treatment": "Use streptomycin-based bactericides under agronomist guidance.",
+      "prevention": "Avoid overhead irrigation and rotate crops with non-solanaceous plants."
+    },
+    "Tomato___Early_blight": {
+      "type": "Fungal Disease",
+      "symptoms": "Dark concentric rings on older leaves causing defoliation.",
+      "organic_treatment": "Spray neem oil or a baking soda solution on affected leaves.",
+      "chemical_treatment": "Use chlorothalonil or mancozeb fungicides as recommended.",
+      "prevention": "Remove infected leaves and maintain crop spacing for good airflow."
+    },
+    "Tomato___Late_blight": {
+      "type": "Fungal Disease",
+      "symptoms": "Large irregular brown patches with white mold growth on undersides of leaves.",
+      "organic_treatment": "Use copper-based organic fungicides; ensure proper drainage.",
+      "chemical_treatment": "Apply metalaxyl or cymoxanil-based fungicides under supervision.",
+      "prevention": "Avoid leaf wetness and practice crop rotation."
+    },
+    "Tomato___Leaf_Mold": {
+      "type": "Fungal Disease",
+      "symptoms": "Pale green or yellow spots on upper leaf surfaces with fuzzy olive mold underneath.",
+      "organic_treatment": "Spray potassium bicarbonate solution and improve air circulation.",
+      "chemical_treatment": "Apply chlorothalonil-based fungicides at first symptom appearance.",
+      "prevention": "Ensure greenhouse ventilation and avoid overhead watering."
+    },
+    "Tomato___Septoria_leaf_spot": {
+      "type": "Fungal Disease",
+      "symptoms": "Small circular spots with dark margins on lower leaves.",
+      "organic_treatment": "Use compost tea or neem oil sprays weekly.",
+      "chemical_treatment": "Apply mancozeb or copper-based fungicides.",
+      "prevention": "Remove infected leaves and avoid working with wet foliage."
+    },
+    "Tomato___Spider_mites Two-spotted_spider_mite": {
+      "type": "Pest Infestation",
+      "symptoms": "Tiny yellow specks and fine webbing under leaves.",
+      "organic_treatment": "Spray with neem oil or insecticidal soap.",
+      "chemical_treatment": "Use miticides like abamectin or bifenthrin as per label directions.",
+      "prevention": "Maintain proper humidity and introduce natural predators (ladybugs)."
+    },
+    "Tomato___Target_Spot": {
+      "type": "Fungal Disease",
+      "symptoms": "Dark brown lesions with concentric rings on leaves and stems.",
+      "organic_treatment": "Apply copper hydroxide sprays weekly until controlled.",
+      "chemical_treatment": "Use difenoconazole-based fungicides as per guidance.",
+      "prevention": "Avoid continuous tomato cropping and remove debris after harvest."
+    },
+    "Tomato___Tomato_Yellow_Leaf_Curl_Virus": {
+      "type": "Viral Disease",
+      "symptoms": "Upward curling yellow leaves and stunted growth.",
+      "organic_treatment": "Introduce beneficial insects to control whiteflies.",
+      "chemical_treatment": "Use imidacloprid or thiamethoxam for vector control.",
+      "prevention": "Use resistant varieties and control whiteflies early."
+    },
+    "Tomato___Tomato_mosaic_virus": {
+      "type": "Viral Disease",
+      "symptoms": "Mottled light and dark green leaf patterns with curling.",
+      "organic_treatment": "Remove and destroy infected plants immediately.",
+      "chemical_treatment": "No chemical cure; disinfect tools and equipment.",
+      "prevention": "Use resistant cultivars and wash hands before handling plants."
+    },
+    "Tomato___healthy": {
+      "type": "Healthy Plant",
+      "symptoms": "Green, uniform leaves with no visible signs of infection.",
+      "organic_treatment": "None required.",
+      "chemical_treatment": "None required.",
+      "prevention": "Maintain good crop management and regular monitoring."
+    }
+  }
+  
