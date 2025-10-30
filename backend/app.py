@@ -9,6 +9,12 @@ import io
 import os
 
 app = FastAPI(title="ShambaEye Backend")
+# Configuration
+BACKEND_HOST = os.getenv("BACKEND_HOST", "192.168.100.14")  # Your IP
+BACKEND_PORT = os.getenv("BACKEND_PORT", "8000")
+BASE_URL = f"http://{BACKEND_HOST}:{BACKEND_PORT}"
+
+
 
 # Serve static files (for heatmaps)
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -51,8 +57,9 @@ async def analyze_severity(file: UploadFile = File(...)):
     # Generate Grad-CAM heatmap and severity analysis
     cam, severity, heatmap_path = generate_gradcam(model_pth, image_tensor, pred_class_index, image)
 
-    # Convert file path to public URL
-    heatmap_url = f"http://127.0.0.1:8000/static/{os.path.basename(heatmap_path)}"
+  # Then in your severity endpoint, use:
+    heatmap_url = f"{BASE_URL}/static/{os.path.basename(heatmap_path)}"
+    
 
     return JSONResponse(content={
         "predicted_class": predicted_disease,
