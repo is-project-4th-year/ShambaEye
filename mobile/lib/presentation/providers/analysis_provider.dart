@@ -3,53 +3,11 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
-import '../../core/config.dart'; // ✅ EXISTING FILE
-import '../../services/api_service.dart'; // 🆕 NEW FILE
-import '../../services/local_model_service.dart'; // 🆕 NEW FILE - FIXED MISSING SEMICOLON
-
-class AnalysisResult {
-  final String disease;
-  final double confidence;
-  final Map<String, dynamic> treatment;
-  final String? severity;
-  final String? heatmapUrl;
-  final bool isOnline;
-  final DateTime timestamp;
-
-  AnalysisResult({
-    required this.disease,
-    required this.confidence,
-    required this.treatment,
-    this.severity,
-    this.heatmapUrl,
-    required this.isOnline,
-    required this.timestamp,
-  });
-
-  Map<String, dynamic> toMap() {
-    return {
-      'disease': disease,
-      'confidence': confidence,
-      'treatment': treatment,
-      'severity': severity,
-      'heatmapUrl': heatmapUrl,
-      'isOnline': isOnline,
-      'timestamp': timestamp.millisecondsSinceEpoch,
-    };
-  }
-
-  static AnalysisResult fromMap(Map<String, dynamic> map) {
-    return AnalysisResult(
-      disease: map['disease'],
-      confidence: map['confidence'].toDouble(),
-      treatment: Map<String, dynamic>.from(map['treatment']),
-      severity: map['severity'],
-      heatmapUrl: map['heatmapUrl'],
-      isOnline: map['isOnline'],
-      timestamp: DateTime.fromMillisecondsSinceEpoch(map['timestamp']),
-    );
-  }
-}
+import '../../core/config.dart';
+import '../../services/api_service.dart';
+import '../../services/local_model_service.dart';
+import '../../services/firestore_service.dart';
+import '../../services/analysis_model.dart'; // 🆕 Use shared model
 
 class AnalysisProvider with ChangeNotifier {
   String? _imagePath;
@@ -58,9 +16,10 @@ class AnalysisProvider with ChangeNotifier {
   List<AnalysisResult> _history = [];
   String? _error;
 
-  // 🆕 NEW: Service instances for online and offline analysis
+  // Services
   final ApiService _apiService = ApiService();
   final LocalModelService _localModelService = LocalModelService();
+  final FirestoreService _firestoreService = FirestoreService();
 
   String? get imagePath => _imagePath;
   bool get isLoading => _isLoading;
@@ -80,35 +39,34 @@ class AnalysisProvider with ChangeNotifier {
     }
   }
 
- Future<void> analyzeImage({bool isOnline = false}) async {
-  if (_imagePath == null) return;
+  Future<void> analyzeImage({bool isOnline = false}) async {
+    if (_imagePath == null) return;
 
-  _isLoading = true;
-  _error = null;
-  notifyListeners();
-
-  print('🔍 Starting analysis - Online mode: $isOnline');
-  print('📁 Image path: $_imagePath');
-
-  try {
-    if (isOnline) {
-      print('🌐 Using ONLINE analysis with server');
-      await _analyzeOnline();
-    } else {
-      print('📱 Using OFFLINE analysis with local model');
-      await _analyzeOffline();
-    }
-  } catch (e) {
-    print('❌ ERROR during analysis: $e');
-    _error = e.toString();
-    _isLoading = false;
+    _isLoading = true;
+    _error = null;
     notifyListeners();
+
+    print('🔍 Starting analysis - Online mode: $isOnline');
+    print('📁 Image path: $_imagePath');
+
+    try {
+      if (isOnline) {
+        print('🌐 Using ONLINE analysis with server');
+        await _analyzeOnline();
+      } else {
+        print('📱 Using OFFLINE analysis with local model');
+        await _analyzeOffline();
+      }
+    } catch (e) {
+      print('❌ ERROR during analysis: $e');
+      _error = e.toString();
+      _isLoading = false;
+      notifyListeners();
+    }
   }
-}
 
   Future<void> _analyzeOnline() async {
     try {
-      // 🆕 UPDATED: Use ApiService instead of direct HTTP calls
       final result = await _apiService.analyzeImage(
         _imagePath!, 
         includeSeverity: true
@@ -116,6 +74,16 @@ class AnalysisProvider with ChangeNotifier {
       
       _lastResult = result;
       _history.add(result);
+      
+      // 🆕 SAVE SCAN TO FIRESTORE
+      try {
+        await _firestoreService.saveScan(result, _imagePath!);
+        print('✅ Scan saved to Firestore');
+      } catch (e) {
+        print('⚠️ Could not save scan to Firestore: $e');
+        // Don't throw error - analysis still successful
+      }
+      
       _isLoading = false;
       notifyListeners();
       
@@ -126,7 +94,6 @@ class AnalysisProvider with ChangeNotifier {
 
   Future<void> _analyzeOffline() async {
     try {
-      // 🆕 UPDATED: Use LocalModelService for offline analysis
       final result = await _localModelService.analyzeImage(_imagePath!);
       
       _lastResult = AnalysisResult(
@@ -140,12 +107,42 @@ class AnalysisProvider with ChangeNotifier {
       );
 
       _history.add(_lastResult!);
+      
+      // 🆕 SAVE OFFLINE SCAN TO FIRESTORE (without images)
+      try {
+        await _firestoreService.saveScan(_lastResult!, _imagePath!);
+        print('✅ Offline scan saved to Firestore');
+      } catch (e) {
+        print('⚠️ Could not save offline scan to Firestore: $e');
+      }
+      
       _isLoading = false;
       notifyListeners();
       
     } catch (e) {
       throw Exception('Offline analysis failed: $e');
     }
+  }
+
+  // 🆕 NEW: Get scan history from Firestore
+  Stream<List<ScanHistory>> getScanHistory() {
+    return _firestoreService.getScanHistory();
+  }
+
+  // 🆕 NEW: Delete scan from Firestore
+  Future<void> deleteScan(String scanId) async {
+    try {
+      await _firestoreService.deleteScan(scanId);
+      notifyListeners();
+    } catch (e) {
+      print('❌ Error deleting scan: $e');
+      rethrow;
+    }
+  }
+
+  // 🆕 NEW: Get scan count
+  Future<int> getScanCount() async {
+    return await _firestoreService.getScanCount();
   }
 
   void clearResults() {

@@ -3,9 +3,6 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'package:provider/provider.dart';
 import 'presentation/pages/splash_screen.dart';
-import 'presentation/pages/home_page.dart'; // ✅ ADD THIS IMPORT
-import 'presentation/pages/auth/login_screen.dart'; // ✅ ADD THIS IMPORT
-import 'presentation/pages/offline_home.dart'; // ✅ ADD THIS IMPORT
 import 'presentation/providers/analysis_provider.dart';
 import 'presentation/providers/auth_provider.dart';
 
@@ -40,24 +37,20 @@ class MyApp extends StatelessWidget {
           primarySwatch: Colors.green,
           primaryColor: const Color(0xFF2E7D32),
           scaffoldBackgroundColor: Colors.white,
+          fontFamily: 'Inter', // Modern font
           appBarTheme: const AppBarTheme(
-            backgroundColor: Color(0xFF2E7D32),
+            backgroundColor: Colors.white,
             elevation: 0,
-            iconTheme: IconThemeData(color: Colors.white),
+            iconTheme: IconThemeData(color: Colors.black87),
             titleTextStyle: TextStyle(
-              color: Colors.white,
+              color: Colors.black87,
               fontSize: 20,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ),
         home: const SplashScreen(),
         debugShowCheckedModeBanner: false,
-        routes: {
-          '/home': (context) => const HomePage(), // ✅ NOW DEFINED
-          '/login': (context) => const LoginScreen(), // ✅ NOW DEFINED
-          '/offline': (context) => const OfflineHome(), // ✅ NOW DEFINED
-        },
       ),
     );
   }
