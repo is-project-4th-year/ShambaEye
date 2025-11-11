@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../providers/analysis_provider.dart';
+import '../providers/auth_provider.dart';
 import 'dart:io';
 
 class AnalysisView extends StatelessWidget {
@@ -20,8 +21,8 @@ class AnalysisView extends StatelessWidget {
               flex: 1,
               child: Container(
                 width: double.infinity,
-                decoration: BoxDecoration(
-                  color: Colors.grey[100],
+                decoration: const BoxDecoration(
+                  color: Color(0xFFF8FDF8),
                 ),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -31,49 +32,51 @@ class AnalysisView extends StatelessWidget {
                         width: 200,
                         height: 200,
                         decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: const Color(0xFFA8D5BA),
+                            width: 2,
+                          ),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.1),
-                              blurRadius: 8,
+                              color: Colors.black.withOpacity(0.05),
+                              blurRadius: 12,
                               offset: const Offset(0, 4),
                             ),
                           ],
                         ),
                         child: ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(14),
                           child: Image.file(
                             File(provider.imagePath!),
                             fit: BoxFit.cover,
                             errorBuilder: (context, error, stackTrace) {
                               return Container(
-                                color: Colors.grey[200],
-                                child: const Icon(Icons.error, size: 50),
+                                color: const Color(0xFFD2EFDA),
+                                child: const Icon(
+                                  Icons.error_outline_rounded,
+                                  size: 50,
+                                  color: Color(0xFF2E7D32),
+                                ),
                               );
                             },
                           ),
                         ),
                       ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 24),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        ElevatedButton.icon(
-                          icon: const Icon(Icons.camera_alt),
-                          label: const Text('Retake'),
+                        _buildImageActionButton(
+                          icon: Icons.camera_alt_rounded,
+                          label: 'Retake',
                           onPressed: () => provider.pickImage(ImageSource.camera),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.grey[600],
-                          ),
                         ),
                         const SizedBox(width: 12),
-                        ElevatedButton.icon(
-                          icon: const Icon(Icons.photo_library),
-                          label: const Text('Choose Another'),
+                        _buildImageActionButton(
+                          icon: Icons.photo_library_rounded,
+                          label: 'Choose Another',
                           onPressed: () => provider.pickImage(ImageSource.gallery),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.grey[600],
-                          ),
                         ),
                       ],
                     ),
@@ -87,6 +90,13 @@ class AnalysisView extends StatelessWidget {
               flex: 1,
               child: Container(
                 padding: const EdgeInsets.all(20),
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(24),
+                    topRight: Radius.circular(24),
+                  ),
+                ),
                 child: _buildAnalysisContent(context, provider),
               ),
             ),
@@ -96,94 +106,244 @@ class AnalysisView extends StatelessWidget {
     );
   }
 
+  Widget _buildImageActionButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onPressed,
+  }) {
+    return ElevatedButton.icon(
+      icon: Icon(icon, size: 18),
+      label: Text(label),
+      onPressed: onPressed,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: const Color(0xFFD2EFDA),
+        foregroundColor: const Color(0xFF2E7D32),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: const BorderSide(color: Color(0xFFA8D5BA)),
+        ),
+      ),
+    );
+  }
+
   Widget _buildAnalysisContent(BuildContext context, AnalysisProvider provider) {
     if (provider.isLoading) {
-      return const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            CircularProgressIndicator(),
-            SizedBox(height: 16),
-            Text(
-              'Analyzing your image...',
-              style: TextStyle(fontSize: 16),
-            ),
-            SizedBox(height: 8),
-            Text(
-              'This may take a few seconds',
-              style: TextStyle(color: Colors.grey),
-            ),
-          ],
-        ),
-      );
+      return _buildLoadingState();
     }
 
     if (provider.error != null) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.error_outline, size: 64, color: Colors.red),
-            const SizedBox(height: 16),
-            const Text(
-              'Analysis Failed',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              provider.error!,
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.grey),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: provider.analyzeImage,
-              child: const Text('Try Again'),
-            ),
-          ],
-        ),
-      );
+      return _buildErrorState(context, provider);
     }
 
-    if (provider.analysisResult == null) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.analytics, size: 64, color: Colors.green),
-            const SizedBox(height: 16),
-            const Text(
-              'Ready to Analyze',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+    if (provider.lastResult == null) {
+      return _buildReadyState(context, provider);
+    }
+
+    return _buildResultsView(context, provider);
+  }
+
+  Widget _buildLoadingState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          SizedBox(
+            width: 60,
+            height: 60,
+            child: CircularProgressIndicator(
+              strokeWidth: 3,
+              valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF2E7D32)),
+              backgroundColor: const Color(0xFFD2EFDA),
             ),
-            const SizedBox(height: 8),
-            const Text(
-              'Tap the button below to analyze your image',
+          ),
+          const SizedBox(height: 20),
+          const Text(
+            'Analyzing Image',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF1B5E20),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Processing your plant image...',
+            style: TextStyle(
+              color: Colors.grey[600],
+              fontSize: 14,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildErrorState(BuildContext context, AnalysisProvider provider) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              color: const Color(0xFFD2EFDA),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: const Icon(
+              Icons.error_outline_rounded,
+              size: 40,
+              color: Color(0xFF2E7D32),
+            ),
+          ),
+          const SizedBox(height: 20),
+          const Text(
+            'Analysis Failed',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF1B5E20),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Text(
+              provider.error!,
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey),
+              style: TextStyle(
+                color: Colors.grey[600],
+                fontSize: 14,
+              ),
             ),
-            const SizedBox(height: 20),
-            ElevatedButton.icon(
-              icon: const Icon(Icons.analytics),
-              label: const Text('Analyze Image'),
-              onPressed: provider.analyzeImage,
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton(
+            onPressed: () => provider.analyzeImage(isOnline: _isUserLoggedIn(context)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF2E7D32),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: const Text('Try Again'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildReadyState(BuildContext context, AnalysisProvider provider) {
+    final isOnline = _isUserLoggedIn(context);
+    
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              color: const Color(0xFFD2EFDA),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Icon(
+              isOnline ? Icons.cloud_rounded : Icons.offline_bolt_rounded,
+              size: 40,
+              color: const Color(0xFF2E7D32),
+            ),
+          ),
+          const SizedBox(height: 20),
+          Text(
+            isOnline ? 'Ready for Analysis' : 'Basic Analysis Ready',
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF1B5E20),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Text(
+              isOnline 
+                  ? 'Tap below for full AI analysis with severity assessment'
+                  : 'Basic disease detection available',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.grey[600],
+                fontSize: 14,
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton.icon(
+            icon: Icon(isOnline ? Icons.cloud_rounded : Icons.offline_bolt_rounded),
+            label: Text(isOnline ? 'Analyze Online' : 'Analyze Offline'),
+            onPressed: () => provider.analyzeImage(isOnline: isOnline),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF2E7D32),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          ),
+          if (!isOnline) ...[
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFD2EFDA),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFFA8D5BA)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.info_outline_rounded, 
+                      size: 16, color: Color(0xFF2E7D32)),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Login for advanced features',
+                    style: TextStyle(
+                      color: const Color(0xFF1B5E20),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
-        ),
-      );
-    }
-
-    // Show results
-    return _buildResultsView(context, provider);
+        ],
+      ),
+    );
   }
+
   Widget _buildHeatmapSection(BuildContext context, AnalysisProvider provider, String heatmapUrl) {
-  return Card(
-    elevation: 2,
-    child: Padding(
-      padding: const EdgeInsets.all(16),
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: const Color(0xFFE8F5E8),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -191,15 +351,15 @@ class AnalysisView extends StatelessWidget {
             'Disease Visualization',
             style: TextStyle(
               fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Colors.green,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF1B5E20),
             ),
           ),
-          const SizedBox(height: 12),
-          const Text(
+          const SizedBox(height: 8),
+          Text(
             'Heatmap showing affected areas (red indicates high disease concentration)',
             style: TextStyle(
-              color: Colors.grey,
+              color: Colors.grey[600],
               fontSize: 14,
             ),
           ),
@@ -217,25 +377,26 @@ class AnalysisView extends StatelessWidget {
                       style: TextStyle(
                         fontWeight: FontWeight.w600,
                         fontSize: 14,
+                        color: Color(0xFF1B5E20),
                       ),
                     ),
                     const SizedBox(height: 8),
                     Container(
                       height: 120,
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.grey[300]!),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFFE8F5E8)),
                       ),
                       child: ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(12),
                         child: provider.imagePath != null
                             ? Image.file(
                                 File(provider.imagePath!),
                                 fit: BoxFit.cover,
                               )
                             : Container(
-                                color: Colors.grey[200],
-                                child: const Icon(Icons.photo, size: 40, color: Colors.grey),
+                                color: const Color(0xFFD2EFDA),
+                                child: const Icon(Icons.photo_rounded, size: 40, color: Color(0xFF2E7D32)),
                               ),
                       ),
                     ),
@@ -254,17 +415,18 @@ class AnalysisView extends StatelessWidget {
                       style: TextStyle(
                         fontWeight: FontWeight.w600,
                         fontSize: 14,
+                        color: Color(0xFF1B5E20),
                       ),
                     ),
                     const SizedBox(height: 8),
                     Container(
                       height: 120,
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.grey[300]!),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFFE8F5E8)),
                       ),
                       child: ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(12),
                         child: _buildHeatmapImage(heatmapUrl),
                       ),
                     ),
@@ -282,6 +444,7 @@ class AnalysisView extends StatelessWidget {
             style: TextStyle(
               fontWeight: FontWeight.w600,
               fontSize: 14,
+              color: Color(0xFF1B5E20),
             ),
           ),
           const SizedBox(height: 8),
@@ -289,184 +452,272 @@ class AnalysisView extends StatelessWidget {
             width: double.infinity,
             height: 200,
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.grey[300]!),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFE8F5E8)),
             ),
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(12),
               child: _buildHeatmapImage(heatmapUrl),
             ),
           ),
         ],
       ),
-    ),
-  );
-}
+    );
+  }
 
-Widget _buildHeatmapImage(String heatmapUrl) {
-  return Image.network(
-    heatmapUrl,
-    fit: BoxFit.cover,
-    loadingBuilder: (context, child, loadingProgress) {
-      if (loadingProgress == null) return child;
-      return Container(
-        color: Colors.grey[200],
-        child: const Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
-    },
-    errorBuilder: (context, error, stackTrace) {
-      return Container(
-        color: Colors.grey[200],
-        child: const Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.error_outline, color: Colors.grey, size: 40),
-            SizedBox(height: 8),
-            Text(
-              'Heatmap not available',
-              style: TextStyle(color: Colors.grey, fontSize: 12),
+  Widget _buildHeatmapImage(String heatmapUrl) {
+    return Image.network(
+      heatmapUrl,
+      fit: BoxFit.cover,
+      loadingBuilder: (context, child, loadingProgress) {
+        if (loadingProgress == null) return child;
+        return Container(
+          color: const Color(0xFFD2EFDA),
+          child: const Center(
+            child: CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF2E7D32)),
             ),
-          ],
-        ),
-      );
-    },
-  );
-}
+          ),
+        );
+      },
+      errorBuilder: (context, error, stackTrace) {
+        return Container(
+          color: const Color(0xFFD2EFDA),
+          child: const Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.error_outline_rounded, color: Color(0xFF2E7D32), size: 40),
+              SizedBox(height: 8),
+              Text(
+                'Heatmap not available',
+                style: TextStyle(color: Color(0xFF2E7D32), fontSize: 12),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 
   Widget _buildResultsView(BuildContext context, AnalysisProvider provider) {
-  final analysis = provider.analysisResult!;
-  final severity = provider.severityResult;
-
-  return SingleChildScrollView(
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Analysis Results',
-          style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 20),
-
-        // Disease Card
-        Card(
-          elevation: 2,
-          child: Padding(
+    final result = provider.lastResult!;
+    
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Mode indicator
+          Container(
+            width: double.infinity,
             padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            decoration: BoxDecoration(
+              color: result.isOnline ? const Color(0xFFD2EFDA) : const Color(0xFFE3F2FD),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: result.isOnline ? const Color(0xFFA8D5BA) : const Color(0xFFBBDEFB),
+              ),
+            ),
+            child: Row(
               children: [
-                const Text(
-                  'Disease Detection',
+                Icon(
+                  result.isOnline ? Icons.cloud_rounded : Icons.offline_bolt_rounded,
+                  color: result.isOnline ? const Color(0xFF2E7D32) : const Color(0xFF1976D2),
+                  size: 20,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  result.isOnline ? 'Online Analysis' : 'Offline Analysis',
                   style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.green,
+                    fontWeight: FontWeight.w600,
+                    color: result.isOnline ? const Color(0xFF1B5E20) : const Color(0xFF0D47A1),
                   ),
                 ),
-                const SizedBox(height: 12),
-                _buildResultRow('Disease', analysis['disease']),
-                _buildResultRow('Confidence', '${(analysis['confidence'] * 100).toStringAsFixed(4)}%'),
-                if (severity != null)
-                  _buildResultRow('Severity', severity['severity']),
+                if (!result.isOnline) ...[
+                  const SizedBox(width: 8),
+                  Text(
+                    '(Basic detection)',
+                    style: TextStyle(
+                      color: const Color(0xFF1B5E20).withOpacity(0.6),
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
-        ),
+          
+          const SizedBox(height: 24),
+          
+          const Text(
+            'Analysis Results',
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF1B5E20),
+            ),
+          ),
+          const SizedBox(height: 20),
 
-        const SizedBox(height: 16),
+          // Disease Card
+          _buildResultCard(
+            title: 'Disease Detection',
+            children: [
+              _buildResultRow('Disease', result.disease),
+              _buildResultRow('Confidence', '${(result.confidence * 100).toStringAsFixed(1)}%'),
+              if (result.severity != null)
+                _buildResultRow('Severity', result.severity!),
+            ],
+          ),
 
-        // Grad-CAM Heatmap Section - NEW
-        if (severity != null && severity['heatmap_url'] != null)
-          _buildHeatmapSection(context, provider, severity['heatmap_url']),
+          const SizedBox(height: 16),
 
-        const SizedBox(height: 16),
+          // Grad-CAM Heatmap Section - Only for online mode
+          if (result.isOnline && result.heatmapUrl != null)
+            _buildHeatmapSection(context, provider, result.heatmapUrl!),
 
-        // Treatment Card
-        if (analysis['treatment'] != null)
-          Card(
-            elevation: 2,
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Treatment Advice',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.green,
+          const SizedBox(height: 16),
+
+          // Treatment Card
+          _buildResultCard(
+            title: 'Treatment Advice',
+            children: [
+              _buildTreatmentSection(result.treatment),
+            ],
+          ),
+
+          const SizedBox(height: 24),
+
+          // Action Buttons
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  icon: const Icon(Icons.photo_library_rounded),
+                  label: const Text('New Analysis'),
+                  onPressed: () => provider.clearResults(),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    side: const BorderSide(color: Color(0xFF2E7D32)),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton.icon(
+                  icon: const Icon(Icons.share_rounded),
+                  label: const Text('Share Results'),
+                  onPressed: () {
+                    // Will add share functionality later
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF2E7D32),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  if (analysis['treatment']['organic_treatment'] != null)
-                    _buildTreatmentSection(
-                      'Organic Treatment',
-                      analysis['treatment']['organic_treatment'],
+                ),
+              ),
+            ],
+          ),
+          
+          // Online features reminder for offline users
+          if (!result.isOnline) ...[
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFFD2EFDA),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFA8D5BA)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.info_outline_rounded, 
+                      color: Color(0xFF2E7D32), size: 20),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Login for full features: severity analysis, heatmaps, and cloud storage',
+                      style: TextStyle(
+                        color: const Color(0xFF1B5E20),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
-                  if (analysis['treatment']['chemical_treatment'] != null)
-                    _buildTreatmentSection(
-                      'Chemical Treatment',
-                      analysis['treatment']['chemical_treatment'],
-                    ),
-                  if (analysis['treatment']['prevention'] != null)
-                    _buildTreatmentSection(
-                      'Prevention',
-                      analysis['treatment']['prevention'],
-                    ),
+                  ),
                 ],
               ),
             ),
-          ),
-
-        const SizedBox(height: 20),
-
-        // Action Buttons
-        Row(
-          children: [
-            Expanded(
-              child: OutlinedButton.icon(
-                icon: const Icon(Icons.photo_library),
-                label: const Text('New Analysis'),
-                onPressed: () => context.read<AnalysisProvider>().clearResults(),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: ElevatedButton.icon(
-                icon: const Icon(Icons.share),
-                label: const Text('Share Results'),
-                onPressed: () {
-                  // Will add share functionality later
-                },
-              ),
-            ),
           ],
-        ),
-      ],
-    ),
-  );
-}
+          const SizedBox(height: 20),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildResultCard({
+    required String title,
+    required List<Widget> children,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+       border: Border.all(
+  color: const Color(0xFFE8F5E8),
+  width: 1,
+),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF1B5E20),
+            ),
+          ),
+          const SizedBox(height: 16),
+          ...children,
+        ],
+      ),
+    );
+  }
 
   Widget _buildResultRow(String label, String value) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         children: [
           Text(
             '$label: ',
-            style: const TextStyle(fontWeight: FontWeight.w600),
+            style: const TextStyle(
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF1B5E20),
+            ),
           ),
           Expanded(
             child: Text(
               value,
               style: TextStyle(
                 color: Colors.grey[700],
+                fontSize: 15,
               ),
             ),
           ),
@@ -475,9 +726,35 @@ Widget _buildHeatmapImage(String heatmapUrl) {
     );
   }
 
-  Widget _buildTreatmentSection(String title, String content) {
+  Widget _buildTreatmentSection(Map<String, dynamic> treatment) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (treatment['advice'] != null)
+          _buildTreatmentItem('General Advice', treatment['advice']),
+        
+        if (treatment['organic_treatment'] != null)
+          _buildTreatmentItem('Organic Treatment', treatment['organic_treatment']),
+        
+        if (treatment['chemical_treatment'] != null)
+          _buildTreatmentItem('Chemical Treatment', treatment['chemical_treatment']),
+        
+        if (treatment['prevention'] != null)
+          _buildTreatmentItem('Prevention', treatment['prevention']),
+          
+        // Fallback for simple treatment structure
+        if (treatment['advice'] == null && 
+            treatment['organic_treatment'] == null && 
+            treatment['chemical_treatment'] == null && 
+            treatment['prevention'] == null)
+          _buildTreatmentItem('Advice', treatment['advice'] ?? 'No specific treatment advice available'),
+      ],
+    );
+  }
+
+  Widget _buildTreatmentItem(String title, String content) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -485,19 +762,30 @@ Widget _buildHeatmapImage(String heatmapUrl) {
             title,
             style: const TextStyle(
               fontWeight: FontWeight.w600,
-              color: Colors.green,
+              color: Color(0xFF1B5E20),
+              fontSize: 15,
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 6),
           Text(
             content,
             style: TextStyle(
               color: Colors.grey[700],
+              fontSize: 14,
               height: 1.4,
             ),
           ),
         ],
       ),
     );
+  }
+
+  bool _isUserLoggedIn(BuildContext context) {
+    try {
+      final authProvider = Provider.of<AppAuthProvider>(context, listen: false);
+      return authProvider.isLoggedIn;
+    } catch (e) {
+      return false;
+    }
   }
 }
