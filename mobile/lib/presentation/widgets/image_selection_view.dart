@@ -9,82 +9,123 @@ class ImageSelectionView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       child: Column(
         children: [
-          // Header Section
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Colors.green[700]!,
-                  Colors.green[500]!,
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Column(
-              children: [
-                const Icon(Icons.agriculture, size: 80, color: Colors.white),
-                const SizedBox(height: 20),
-                const Text(
-                  'Crop Disease Detection',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  'Capture or upload an image of your crop leaf for instant analysis and treatment recommendations',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(0.9),
-                    fontSize: 16,
-                    height: 1.5,
-                  ),
-                ),
-              ],
-            ),
-          ),
-
+          // Header Card
+          _buildHeaderCard(),
           const SizedBox(height: 32),
-
+          
           // Action Buttons
-          Row(
-            children: [
-              Expanded(
-                child: _buildActionButton(
-                  context: context,
-                  icon: Icons.camera_alt,
-                  label: 'Capture',
-                  onPressed: () => context.read<AnalysisProvider>().pickImage(ImageSource.camera),
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _buildActionButton(
-                  context: context,
-                  icon: Icons.photo_library,
-                  label: 'Gallery',
-                  onPressed: () => context.read<AnalysisProvider>().pickImage(ImageSource.gallery),
-                ),
-              ),
-            ],
-          ),
-
+          _buildActionButtons(context),
           const SizedBox(height: 40),
-
+          
           // Features Section
-          _buildFeatureSection(),
+          _buildFeaturesSection(),
         ],
       ),
+    );
+  }
+
+  Widget _buildHeaderCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: const Color(0xFFD2EFDA),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: const Color(0xFFA8D5BA),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        children: [
+          Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              color: const Color(0xFF2E7D32),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: const Icon(
+              Icons.agriculture,
+              size: 40,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 20),
+          const Text(
+            'Plant Health Analysis',
+            style: TextStyle(
+              color: Color(0xFF1B5E20),
+              fontSize: 24,
+              fontWeight: FontWeight.w700,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Capture or upload an image of your plant leaf for instant AI-powered disease detection and treatment recommendations',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: const Color(0xFF1B5E20).withOpacity(0.7),
+              fontSize: 15,
+              height: 1.5,
+              fontWeight: FontWeight.w400,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActionButtons(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Select Image Source',
+          style: TextStyle(
+            color: Color(0xFF1B5E20),
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Choose how you want to capture the image',
+          style: TextStyle(
+            color: Colors.grey[600],
+            fontSize: 14,
+            fontWeight: FontWeight.w400,
+          ),
+        ),
+        const SizedBox(height: 20),
+        Row(
+          children: [
+            Expanded(
+              child: _buildActionButton(
+                context: context,
+                icon: Icons.photo_camera_rounded,
+                label: 'Camera',
+                subtitle: 'Take a photo',
+                onPressed: () => context.read<AnalysisProvider>().pickImage(ImageSource.camera),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: _buildActionButton(
+                context: context,
+                icon: Icons.photo_library_rounded,
+                label: 'Gallery',
+                subtitle: 'Choose from photos',
+                onPressed: () => context.read<AnalysisProvider>().pickImage(ImageSource.gallery),
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 
@@ -92,65 +133,101 @@ class ImageSelectionView extends StatelessWidget {
     required BuildContext context,
     required IconData icon,
     required String label,
+    required String subtitle,
     required VoidCallback onPressed,
   }) {
-    return Card(
-      elevation: 4,
-      child: InkWell(
-        onTap: onPressed,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            children: [
-              Icon(icon, size: 40, color: Colors.green[700]),
-              const SizedBox(height: 12),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.grey[800],
-                ),
-              ),
-            ],
+    return GestureDetector(
+      onTap: onPressed,
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: const Color(0xFFD2EFDA),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: const Color(0xFFA8D5BA),
+            width: 1,
           ),
+        ),
+        child: Column(
+          children: [
+            Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                color: const Color(0xFF2E7D32).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Icon(
+                icon,
+                size: 28,
+                color: const Color(0xFF2E7D32),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF1B5E20),
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              subtitle,
+              style: TextStyle(
+                fontSize: 13,
+                color: const Color(0xFF1B5E20).withOpacity(0.6),
+                fontWeight: FontWeight.w400,
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildFeatureSection() {
+  Widget _buildFeaturesSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'How it works:',
+          'How It Works',
           style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
+            color: Color(0xFF1B5E20),
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 4),
+        Text(
+          'Simple steps to analyze your plant health',
+          style: TextStyle(
+            color: Colors.grey[600],
+            fontSize: 14,
+            fontWeight: FontWeight.w400,
+          ),
+        ),
+        const SizedBox(height: 20),
         _buildFeatureItem(
-          icon: Icons.photo_camera,
+          icon: Icons.photo_camera_outlined,
           title: 'Capture Image',
-          description: 'Take a clear photo of the affected crop leaf',
+          description: 'Take a clear photo of the plant leaf',
         ),
         _buildFeatureItem(
-          icon: Icons.analytics,
+          icon: Icons.analytics_outlined,
           title: 'AI Analysis',
-          description: 'Our model detects diseases with high accuracy',
+          description: 'Advanced detection with high accuracy',
         ),
         _buildFeatureItem(
-          icon: Icons.medical_services,
+          icon: Icons.medical_services_outlined,
           title: 'Get Treatment',
-          description: 'Receive organic and chemical treatment advice',
+          description: 'Personalized treatment recommendations',
         ),
         _buildFeatureItem(
-          icon: Icons.insights,
-          title: 'Severity Assessment',
-          description: 'Understand the severity level of the infection',
+          icon: Icons.insights_outlined,
+          title: 'Detailed Insights',
+          description: 'Severity assessment and prevention tips',
         ),
       ],
     );
@@ -162,11 +239,32 @@ class ImageSelectionView extends StatelessWidget {
     required String description,
   }) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: const Color(0xFFE8F5E8),
+          width: 1,
+        ),
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 24, color: Colors.green),
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: const Color(0xFFD2EFDA),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(
+              icon,
+              size: 20,
+              color: const Color(0xFF2E7D32),
+            ),
+          ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -175,16 +273,18 @@ class ImageSelectionView extends StatelessWidget {
                 Text(
                   title,
                   style: const TextStyle(
-                    fontSize: 16,
+                    fontSize: 15,
                     fontWeight: FontWeight.w600,
+                    color: Color(0xFF1B5E20),
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   description,
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: 13,
                     color: Colors.grey[600],
+                    fontWeight: FontWeight.w400,
                   ),
                 ),
               ],

@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import '../presentation/providers/analysis_provider.dart'; // ✅ UPDATED FILE
+import 'analysis_model.dart'; // 🆕 ADD THIS IMPORT
 
 class ApiService {
   static const String baseUrl = 'http://192.168.100.14:8000'; // Your backend URL
@@ -10,7 +10,8 @@ class ApiService {
     bool includeSeverity = false,
   }) async {
     try {
-      // First get basic analysis
+      print('🔄 Sending request to server: $baseUrl/analyze/');
+      
       var request = http.MultipartRequest(
         'POST',
         Uri.parse('$baseUrl/analyze/'),
@@ -21,18 +22,22 @@ class ApiService {
         imagePath,
       ));
 
+      print('📤 Uploading image to server...');
       var response = await request.send();
       var responseData = await response.stream.bytesToString();
       
+      print('📥 Server response status: ${response.statusCode}');
+      print('📥 Server response: $responseData');
+      
       if (response.statusCode != 200) {
-        throw Exception('Analysis failed: ${response.statusCode}');
+        throw Exception('Analysis failed: ${response.statusCode} - $responseData');
       }
       
       var analysisData = json.decode(responseData);
-      print('🔍 ANALYSIS RESPONSE: $analysisData');
 
       // If severity analysis is requested, get Grad-CAM results
       if (includeSeverity) {
+        print('🔄 Getting severity analysis...');
         var severityRequest = http.MultipartRequest(
           'POST',
           Uri.parse('$baseUrl/severity/'),
@@ -46,12 +51,13 @@ class ApiService {
         var severityResponse = await severityRequest.send();
         var severityData = await severityResponse.stream.bytesToString();
         
+        print('📥 Severity response status: ${severityResponse.statusCode}');
+        
         if (severityResponse.statusCode != 200) {
           throw Exception('Severity analysis failed: ${severityResponse.statusCode}');
         }
         
         var severityAnalysis = json.decode(severityData);
-        print('🔍 SEVERITY RESPONSE: $severityAnalysis');
 
         return AnalysisResult(
           disease: analysisData['disease'],
@@ -73,16 +79,21 @@ class ApiService {
       );
       
     } catch (e) {
-      throw Exception('Failed to analyze image: $e');
+      print('❌ API Service Error: $e');
+      throw Exception('Failed to connect to analysis server: $e');
     }
   }
 
-  // Additional API methods can be added here
+  // Test server connection
   Future<bool> checkServerStatus() async {
     try {
+      print('🔍 Checking server status...');
       final response = await http.get(Uri.parse('$baseUrl/'));
-      return response.statusCode == 200;
+      final isOnline = response.statusCode == 200;
+      print('🌐 Server status: ${isOnline ? 'Online' : 'Offline'}');
+      return isOnline;
     } catch (e) {
+      print('❌ Server check failed: $e');
       return false;
     }
   }

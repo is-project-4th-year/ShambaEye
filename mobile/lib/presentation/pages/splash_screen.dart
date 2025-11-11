@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'auth/login_screen.dart';
-import 'offline_home.dart';
+import 'main_screen.dart'; // 🆕 ADD THIS IMPORT
 import '../providers/auth_provider.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -35,7 +35,7 @@ class _SplashScreenState extends State<SplashScreen> {
       final authCheck = authProvider.checkAuthStatus().timeout(
         const Duration(seconds: 5),
         onTimeout: () {
-          print('⏰ Auth check timed out, proceeding to options screen');
+          print('⏰ Auth check timed out, proceeding to main screen');
           return; // Return gracefully on timeout
         },
       );
@@ -51,11 +51,11 @@ class _SplashScreenState extends State<SplashScreen> {
       
     } catch (e) {
       print('❌ Error during app initialization: $e');
-      // On error, proceed to options screen
+      // On error, proceed to main screen
       if (mounted) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => SplashOptionsScreen()),
+          MaterialPageRoute(builder: (context) => const MainScreen()),
         );
       }
     } finally {
@@ -68,74 +68,134 @@ class _SplashScreenState extends State<SplashScreen> {
   void _navigateToNextScreen(AppAuthProvider authProvider) {
     if (!mounted) return;
     
-    if (authProvider.isLoggedIn) {
-      print('🚀 User is logged in, navigating to HomePage');
-      Navigator.pushReplacementNamed(context, '/home');
-    } else {
-      print('🚀 User not logged in, navigating to options');
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => SplashOptionsScreen()),
-      );
-    }
+    // 🆕 UPDATED: Always navigate to MainScreen, which handles online/offline mode internally
+    print('🚀 Navigating to MainScreen');
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => const MainScreen()),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.green[50],
+      backgroundColor: Colors.white, // 🆕 UPDATED: White background for modern look
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.agriculture, size: 100, color: Colors.green[800]),
-            const SizedBox(height: 20),
+            // 🆕 UPDATED: Modern logo design
+            Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Color(0xFF2E7D32), Color(0xFF4CAF50)],
+                ),
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.green.withOpacity(0.3),
+                    blurRadius: 15,
+                    offset: const Offset(0, 5),
+                  ),
+                ],
+              ),
+              child: const Icon(
+                Icons.agriculture,
+                size: 60,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 32),
+            // 🆕 UPDATED: Modern typography
             Text(
               'ShambaEye',
               style: TextStyle(
-                fontSize: 32,
-                fontWeight: FontWeight.bold,
+                fontSize: 36,
+                fontWeight: FontWeight.w700,
                 color: Colors.green[800],
+                letterSpacing: -0.5,
               ),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
             Text(
               'Tomato Disease Detector',
               style: TextStyle(
                 fontSize: 16,
-                color: Colors.green[600],
+                color: Colors.grey[600],
+                fontWeight: FontWeight.w500,
               ),
             ),
-            const SizedBox(height: 30),
+            const SizedBox(height: 40),
+            // 🆕 UPDATED: Modern loading indicator
             if (!_authCheckComplete) ...[
-              CircularProgressIndicator(color: Colors.green),
+              SizedBox(
+                width: 40,
+                height: 40,
+                child: CircularProgressIndicator(
+                  strokeWidth: 3,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.green[700]!),
+                  backgroundColor: Colors.green[100],
+                ),
+              ),
               const SizedBox(height: 20),
               Text(
-                'Loading...',
+                'Preparing your experience...',
                 style: TextStyle(
-                  color: Colors.green[700],
+                  color: Colors.grey[600],
                   fontSize: 14,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ] else if (_initialized && !_authCheckComplete) ...[
-              Icon(Icons.warning, color: Colors.orange, size: 40),
-              const SizedBox(height: 10),
-              Text(
-                'Taking longer than expected',
-                style: TextStyle(
-                  color: Colors.orange[700],
-                  fontSize: 14,
+              // 🆕 UPDATED: Modern timeout UI
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.orange[50],
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.orange[200]!),
                 ),
-              ),
-              const SizedBox(height: 10),
-              TextButton(
-                onPressed: () {
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(builder: (context) => SplashOptionsScreen()),
-                  );
-                },
-                child: Text('Continue Anyway'),
+                child: Column(
+                  children: [
+                    Icon(Icons.wifi_off_rounded, color: Colors.orange[700], size: 40),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Connection Issue',
+                      style: TextStyle(
+                        color: Colors.orange[800],
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Starting in offline mode',
+                      style: TextStyle(
+                        color: Colors.orange[700],
+                        fontSize: 14,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 12),
+                    ElevatedButton(
+                      onPressed: () {
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(builder: (context) => const MainScreen()),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.orange[700],
+                        foregroundColor: Colors.white,
+                      ),
+                      child: const Text('CONTINUE'),
+                    ),
+                  ],
+                ),
               ),
             ],
           ],
@@ -145,91 +205,4 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 }
 
-class SplashOptionsScreen extends StatelessWidget {
-  const SplashOptionsScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.green[50],
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.agriculture, size: 80, color: Colors.green[800]),
-              const SizedBox(height: 30),
-              Text(
-                'Welcome to ShambaEye',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.green[800],
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 10),
-              Text(
-                'Detect tomato plant diseases instantly',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.green[600],
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 50),
-              _buildOptionButton(
-                context,
-                title: 'Continue Offline',
-                subtitle: 'Basic disease detection',
-                icon: Icons.offline_bolt,
-                color: Colors.blue,
-                onTap: () {
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(builder: (context) => OfflineHome()),
-                  );
-                },
-              ),
-              const SizedBox(height: 20),
-              _buildOptionButton(
-                context,
-                title: 'Login / Sign Up',
-                subtitle: 'Full features with history & analysis',
-                icon: Icons.cloud,
-                color: Colors.green,
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => LoginScreen()),
-                  );
-                },
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildOptionButton(
-    BuildContext context, {
-    required String title,
-    required String subtitle,
-    required IconData icon,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return Card(
-      elevation: 4,
-      child: ListTile(
-        leading: Icon(icon, size: 32, color: color),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-        subtitle: Text(subtitle),
-        trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-        onTap: onTap,
-      ),
-    );
-  }
-}
+// 🆕 REMOVED: SplashOptionsScreen - No longer needed since we go directly to MainScreen
