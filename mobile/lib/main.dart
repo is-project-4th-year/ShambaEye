@@ -1,9 +1,26 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 import 'package:provider/provider.dart';
-import 'presentation/pages/home_page.dart';
+import 'presentation/pages/splash_screen.dart';
+import 'presentation/pages/home_page.dart'; // ✅ ADD THIS IMPORT
+import 'presentation/pages/auth/login_screen.dart'; // ✅ ADD THIS IMPORT
+import 'presentation/pages/offline_home.dart'; // ✅ ADD THIS IMPORT
 import 'presentation/providers/analysis_provider.dart';
+import 'presentation/providers/auth_provider.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    print('✅ Firebase initialized successfully');
+  } catch (e) {
+    print('❌ Firebase initialization failed: $e');
+  }
+  
   runApp(const MyApp());
 }
 
@@ -12,8 +29,11 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (context) => AnalysisProvider(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AppAuthProvider()),
+        ChangeNotifierProvider(create: (_) => AnalysisProvider()),
+      ],
       child: MaterialApp(
         title: 'ShambaEye',
         theme: ThemeData(
@@ -31,8 +51,13 @@ class MyApp extends StatelessWidget {
             ),
           ),
         ),
-        home: const HomePage(),
+        home: const SplashScreen(),
         debugShowCheckedModeBanner: false,
+        routes: {
+          '/home': (context) => const HomePage(), // ✅ NOW DEFINED
+          '/login': (context) => const LoginScreen(), // ✅ NOW DEFINED
+          '/offline': (context) => const OfflineHome(), // ✅ NOW DEFINED
+        },
       ),
     );
   }
