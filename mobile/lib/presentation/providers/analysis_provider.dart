@@ -127,7 +127,6 @@ print('ℹ️ Offline scan complete — not saving to Firestore');
   } catch (e) {
     throw Exception('Offline analysis failed: $e');
   }
-}
 
 
 
