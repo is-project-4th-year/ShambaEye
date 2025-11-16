@@ -31,3 +31,6 @@ __pycache__/
 
 # Ignore the firebase config file
 mobile/lib/firebase_options.dart
+
+
+backend/static/
