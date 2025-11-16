@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
-import '../../services/auth_service.dart'; // ✅ ADD THIS IMPORT
+import '../../services/auth_service.dart'; 
+import 'auth/login_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -117,6 +118,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
   }
 
+void _navigateToLogin() {
+  Navigator.push(
+    context,
+    MaterialPageRoute(builder: (context) => LoginScreen()),
+  );
+}
   @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AppAuthProvider>(context);
@@ -137,16 +144,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
               _buildProfileCard(authProvider),
               const SizedBox(height: 24),
               
-              // Stats Section
-              _buildStatsSection(),
-              const SizedBox(height: 32),
+              // Stats Section - Only show when logged in
+              if (authProvider.isLoggedIn) ...[
+                _buildStatsSection(),
+                const SizedBox(height: 32),
+              ],
               
-              // Profile Details
-              _buildProfileDetails(context, authProvider),
-              const SizedBox(height: 40),
+              // Profile Details - Only show when logged in
+              if (authProvider.isLoggedIn) ...[
+                _buildProfileDetails(context, authProvider),
+                const SizedBox(height: 40),
+              ],
               
-              // Logout Button
-              _buildLogoutButton(context),
+              // Login/Logout Button
+              _buildAuthButton(context, authProvider),
             ],
           ),
         ),
@@ -183,7 +194,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ],
           ),
         ),
-        if (!_isEditing && authProvider.isLoggedIn)
+        if (authProvider.isLoggedIn && !_isEditing)
           Container(
             width: 44,
             height: 44,
@@ -692,27 +703,43 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildLogoutButton(BuildContext context) {
+  Widget _buildAuthButton(BuildContext context, AppAuthProvider authProvider) {
     return Center(
       child: SizedBox(
         width: double.infinity,
-        child: OutlinedButton.icon(
-          onPressed: () {
-            _showLogoutDialog(context);
-          },
-          icon: const Icon(Icons.logout_rounded, color: Colors.red),
-          label: const Text(
-            'Logout',
-            style: TextStyle(color: Colors.red, fontWeight: FontWeight.w600),
-          ),
-          style: OutlinedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            side: const BorderSide(color: Colors.red),
-          ),
-        ),
+        child: authProvider.isLoggedIn
+            ? OutlinedButton.icon(
+                onPressed: () {
+                  _showLogoutDialog(context);
+                },
+                icon: const Icon(Icons.logout_rounded, color: Colors.red),
+                label: const Text(
+                  'Logout',
+                  style: TextStyle(color: Colors.red, fontWeight: FontWeight.w600),
+                ),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  side: const BorderSide(color: Colors.red),
+                ),
+              )
+            : ElevatedButton.icon(
+                onPressed: _navigateToLogin,
+                icon: const Icon(Icons.login_rounded, color: Colors.white),
+                label: const Text(
+                  'Login',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF2E7D32),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
       ),
     );
   }

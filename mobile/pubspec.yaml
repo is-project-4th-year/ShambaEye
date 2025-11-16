@@ -69,5 +69,6 @@ flutter:
 
   # Add assets for images
   assets:
-    - assets/models/
+    - assets/models/tomato_disease_classifier_mobile.ptl
+    - assets/models/class_names.json
     - assets/treatment_advice.json

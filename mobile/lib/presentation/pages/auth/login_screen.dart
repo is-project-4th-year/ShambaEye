@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../home_page.dart'; // ✅ EXISTING FILE
+// import '../home_page.dart'; // ✅ EXISTING FILE
 import '../../providers/auth_provider.dart'; // 🆕 NEW FILE
 import 'signup_screen.dart'; // 🆕 NEW FILE
+import '../home_screen.dart';
+import '../main_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -40,7 +42,7 @@ class _LoginScreenState extends State<LoginScreen> {
           // Navigate to home
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (context) => HomePage()),
+            MaterialPageRoute(builder: (context) => MainScreen()),
           );
         }
       }
