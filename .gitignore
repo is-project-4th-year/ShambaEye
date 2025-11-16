@@ -28,3 +28,5 @@ __pycache__/
 !/model/tomato_disease_classifier_confidence.pth
 !/model/class_names.json
 !/model/treatment_advice.json
+
+mobile/lib/firebase_options

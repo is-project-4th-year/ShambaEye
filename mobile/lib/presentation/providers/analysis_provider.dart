@@ -18,7 +18,8 @@ class AnalysisProvider with ChangeNotifier {
 
   // Services
   final ApiService _apiService = ApiService();
-  final LocalModelService _localModelService = LocalModelService();
+ final LocalModelService _localModelService = LocalModelService.instance;
+
   final FirestoreService _firestoreService = FirestoreService();
 
   String? get imagePath => _imagePath;
@@ -92,37 +93,42 @@ class AnalysisProvider with ChangeNotifier {
     }
   }
 
-  Future<void> _analyzeOffline() async {
-    try {
-      final result = await _localModelService.analyzeImage(_imagePath!);
-      
-      _lastResult = AnalysisResult(
-        disease: result['disease'],
-        confidence: result['confidence'].toDouble(),
-        treatment: result['treatment'],
-        severity: null, // Not available in offline mode
-        heatmapUrl: null, // Not available in offline mode
-        isOnline: false,
-        timestamp: DateTime.now(),
-      );
+Future<void> _analyzeOffline() async {
+  try {
+    print("📥 Loading local model...");
+    await _localModelService.loadModel();       // <-- REQUIRED
 
-      _history.add(_lastResult!);
-      
-      // 🆕 SAVE OFFLINE SCAN TO FIRESTORE (without images)
-      try {
-        await _firestoreService.saveScan(_lastResult!, _imagePath!);
-        print('✅ Offline scan saved to Firestore');
-      } catch (e) {
-        print('⚠️ Could not save offline scan to Firestore: $e');
-      }
-      
-      _isLoading = false;
-      notifyListeners();
-      
-    } catch (e) {
-      throw Exception('Offline analysis failed: $e');
-    }
+    print("🤖 Running offline inference...");
+    final result = await _localModelService.analyzeImage(_imagePath!);
+
+    _lastResult = AnalysisResult(
+      disease: result['disease'],
+      confidence: result['confidence'].toDouble(),
+      treatment: result['treatment'],
+      severity: null,
+      heatmapUrl: null,
+      isOnline: false,
+      timestamp: DateTime.now(),
+    );
+
+    _history.add(_lastResult!);
+// Skip saving offline scans to Firestore
+print('ℹ️ Offline scan complete — not saving to Firestore');
+
+    // try {
+    //   await _firestoreService.saveScan(_lastResult!, _imagePath!);
+    //   print('✅ Offline scan saved to Firestore');
+    // } catch (e) {
+    //   print('⚠️ Could not save offline scan to Firestore: $e');
+    // }
+
+    _isLoading = false;
+    notifyListeners();
+  } catch (e) {
+    throw Exception('Offline analysis failed: $e');
   }
+
+
 
   // 🆕 NEW: Get scan history from Firestore
   Stream<List<ScanHistory>> getScanHistory() {
