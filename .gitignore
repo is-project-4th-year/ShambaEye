@@ -29,4 +29,5 @@ __pycache__/
 !/model/class_names.json
 !/model/treatment_advice.json
 
-mobile/lib/firebase_options
+# Ignore the firebase config file
+mobile/lib/firebase_options.dart

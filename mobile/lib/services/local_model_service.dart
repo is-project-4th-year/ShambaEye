@@ -47,6 +47,7 @@ Future<void> loadModel({
       final jsonStr = await rootBundle.loadString(jsonPath);
       final List<dynamic> jsonList = json.decode(jsonStr);
       classNames = jsonList.map((e) => e.toString()).toList();
+
     }
   } catch (e) {
     print('Warning: Unable to load class names. Using indices as fallback.');
@@ -64,6 +65,8 @@ Future<void> loadModel({
 
   _isLoaded = true;
   print('Model loaded successfully with ${classNames.length} classes.');
+  print('📄 Loaded class names: $classNames');
+
 }
 
 
