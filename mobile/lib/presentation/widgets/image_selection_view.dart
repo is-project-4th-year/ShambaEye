@@ -2,32 +2,35 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../providers/analysis_provider.dart';
+import 'package:shamba_eye/gen_l10n/app_localizations.dart';
 
 class ImageSelectionView extends StatelessWidget {
   const ImageSelectionView({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final locale = AppLocalizations.of(context)!;
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(
         children: [
           // Header Card
-          _buildHeaderCard(),
+          _buildHeaderCard(locale),
           const SizedBox(height: 32),
           
           // Action Buttons
-          _buildActionButtons(context),
+          _buildActionButtons(context, locale),
           const SizedBox(height: 40),
           
           // Features Section
-          _buildFeaturesSection(),
+          _buildFeaturesSection(locale),
         ],
       ),
     );
   }
 
-  Widget _buildHeaderCard() {
+  Widget _buildHeaderCard(AppLocalizations locale) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(24),
@@ -55,9 +58,9 @@ class ImageSelectionView extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 20),
-          const Text(
-            'Plant Health Analysis',
-            style: TextStyle(
+          Text(
+            locale.plant_health_analysis,
+            style: const TextStyle(
               color: Color(0xFF1B5E20),
               fontSize: 24,
               fontWeight: FontWeight.w700,
@@ -66,7 +69,7 @@ class ImageSelectionView extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            'Capture or upload an image of your plant leaf for instant AI-powered disease detection and treatment recommendations',
+            locale.capture_upload_description,
             textAlign: TextAlign.center,
             style: TextStyle(
               color: const Color(0xFF1B5E20).withOpacity(0.7),
@@ -80,13 +83,13 @@ class ImageSelectionView extends StatelessWidget {
     );
   }
 
-  Widget _buildActionButtons(BuildContext context) {
+  Widget _buildActionButtons(BuildContext context, AppLocalizations locale) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Select Image Source',
-          style: TextStyle(
+        Text(
+          locale.select_image_source,
+          style: const TextStyle(
             color: Color(0xFF1B5E20),
             fontSize: 18,
             fontWeight: FontWeight.w600,
@@ -94,7 +97,7 @@ class ImageSelectionView extends StatelessWidget {
         ),
         const SizedBox(height: 4),
         Text(
-          'Choose how you want to capture the image',
+          locale.choose_how_to_capture,
           style: TextStyle(
             color: Colors.grey[600],
             fontSize: 14,
@@ -108,8 +111,8 @@ class ImageSelectionView extends StatelessWidget {
               child: _buildActionButton(
                 context: context,
                 icon: Icons.photo_camera_rounded,
-                label: 'Camera',
-                subtitle: 'Take a photo',
+                label: locale.camera,
+                subtitle: locale.take_a_photo,
                 onPressed: () => context.read<AnalysisProvider>().pickImage(ImageSource.camera),
               ),
             ),
@@ -118,8 +121,8 @@ class ImageSelectionView extends StatelessWidget {
               child: _buildActionButton(
                 context: context,
                 icon: Icons.photo_library_rounded,
-                label: 'Gallery',
-                subtitle: 'Choose from photos',
+                label: locale.gallery,
+                subtitle: locale.choose_from_photos,
                 onPressed: () => context.read<AnalysisProvider>().pickImage(ImageSource.gallery),
               ),
             ),
@@ -187,13 +190,13 @@ class ImageSelectionView extends StatelessWidget {
     );
   }
 
-  Widget _buildFeaturesSection() {
+  Widget _buildFeaturesSection(AppLocalizations locale) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'How It Works',
-          style: TextStyle(
+        Text(
+          locale.how_it_works,
+          style: const TextStyle(
             color: Color(0xFF1B5E20),
             fontSize: 18,
             fontWeight: FontWeight.w600,
@@ -201,7 +204,7 @@ class ImageSelectionView extends StatelessWidget {
         ),
         const SizedBox(height: 4),
         Text(
-          'Simple steps to analyze your plant health',
+          locale.simple_steps,
           style: TextStyle(
             color: Colors.grey[600],
             fontSize: 14,
@@ -211,23 +214,23 @@ class ImageSelectionView extends StatelessWidget {
         const SizedBox(height: 20),
         _buildFeatureItem(
           icon: Icons.photo_camera_outlined,
-          title: 'Capture Image',
-          description: 'Take a clear photo of the plant leaf',
+          title: locale.capture_image,
+          description: locale.take_clear_photo,
         ),
         _buildFeatureItem(
           icon: Icons.analytics_outlined,
-          title: 'AI Analysis',
-          description: 'Advanced detection with high accuracy',
+          title: locale.ai_analysis,
+          description: locale.advanced_detection,
         ),
         _buildFeatureItem(
           icon: Icons.medical_services_outlined,
-          title: 'Get Treatment',
-          description: 'Personalized treatment recommendations',
+          title: locale.get_treatment,
+          description: locale.personalized_recommendations,
         ),
         _buildFeatureItem(
           icon: Icons.insights_outlined,
-          title: 'Detailed Insights',
-          description: 'Severity assessment and prevention tips',
+          title: locale.detailed_insights,
+          description: locale.severity_assessment,
         ),
       ],
     );

@@ -3,18 +3,21 @@ import 'package:provider/provider.dart';
 import '../providers/analysis_provider.dart';
 import '../widgets/image_selection_view.dart';
 import '../widgets/analysis_view.dart';
+import 'package:shamba_eye/gen_l10n/app_localizations.dart';
 
 class AnalysisScreen extends StatelessWidget {
   const AnalysisScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final locale = AppLocalizations.of(context)!;
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text(
-          'Analyze Plant',
-          style: TextStyle(
+        title: Text(
+          locale.analyze_plant,
+          style: const TextStyle(
             color: Color(0xFF1B5E20),
             fontWeight: FontWeight.w600,
           ),

@@ -3,12 +3,15 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../providers/analysis_provider.dart';
 import '../../services/firestore_service.dart';
+import 'package:shamba_eye/gen_l10n/app_localizations.dart';
 
 class HistoryScreen extends StatelessWidget {
   const HistoryScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final locale = AppLocalizations.of(context)!;
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -16,11 +19,11 @@ class HistoryScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Header
-            _buildHeader(),
+            _buildHeader(context, locale),
             
             // Content
             Expanded(
-              child: _buildHistoryContent(context),
+              child: _buildHistoryContent(context, locale),
             ),
           ],
         ),
@@ -28,7 +31,7 @@ class HistoryScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(BuildContext context, AppLocalizations locale) {
     return Container(
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -36,7 +39,6 @@ class HistoryScreen extends StatelessWidget {
         children: [
           Row(
             children: [
-              // Removed back button since we're using bottom navigation
               Container(
                 width: 48,
                 height: 48,
@@ -51,24 +53,24 @@ class HistoryScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12),
-              const Expanded(
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Scan History',
-                      style: TextStyle(
+                      locale.scan_history,
+                      style: const TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.w700,
                         color: Color(0xFF1B5E20),
                       ),
                     ),
-                    SizedBox(height: 2),
+                    const SizedBox(height: 2),
                     Text(
-                      'Your plant analysis records',
+                      locale.your_plant_analysis_records,
                       style: TextStyle(
                         fontSize: 14,
-                        color: Colors.grey,
+                        color: Colors.grey[600],
                         fontWeight: FontWeight.w400,
                       ),
                     ),
@@ -97,31 +99,32 @@ class HistoryScreen extends StatelessWidget {
       ),
     );
   }
+  
 
-  Widget _buildHistoryContent(BuildContext context) {
+  Widget _buildHistoryContent(BuildContext context, AppLocalizations locale) {
     return StreamBuilder<List<ScanHistory>>(
       stream: Provider.of<AnalysisProvider>(context, listen: false).getScanHistory(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return _buildLoadingState();
+          return _buildLoadingState(locale);
         }
 
         if (snapshot.hasError) {
-          return _buildErrorState(snapshot.error.toString());
+          return _buildErrorState(snapshot.error.toString(), locale);
         }
 
         final scans = snapshot.data ?? [];
 
         if (scans.isEmpty) {
-          return _buildEmptyState(context);
+          return _buildEmptyState(context, locale);
         }
 
-        return _buildHistoryList(scans, context);
+        return _buildHistoryList(scans, context, locale);
       },
     );
   }
 
-  Widget _buildLoadingState() {
+  Widget _buildLoadingState(AppLocalizations locale) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -136,9 +139,9 @@ class HistoryScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 20),
-          const Text(
-            'Loading History',
-            style: TextStyle(
+          Text(
+            locale.loading_history,
+            style: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w600,
               color: Color(0xFF1B5E20),
@@ -146,7 +149,7 @@ class HistoryScreen extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Fetching your scan records...',
+            locale.fetching_your_scan_records,
             style: TextStyle(
               color: Colors.grey[600],
               fontSize: 14,
@@ -157,7 +160,7 @@ class HistoryScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildErrorState(String error) {
+  Widget _buildErrorState(String error, AppLocalizations locale) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -176,9 +179,9 @@ class HistoryScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 20),
-          const Text(
-            'Unable to Load History',
-            style: TextStyle(
+          Text(
+            locale.unable_to_load_history,
+            style: const TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w600,
               color: Color(0xFF1B5E20),
@@ -201,7 +204,7 @@ class HistoryScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildEmptyState(BuildContext context) {
+  Widget _buildEmptyState(BuildContext context, AppLocalizations locale) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -220,9 +223,9 @@ class HistoryScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 24),
-          const Text(
-            'No Scans Yet',
-            style: TextStyle(
+          Text(
+            locale.no_scans_yet,
+            style: const TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.w700,
               color: Color(0xFF1B5E20),
@@ -232,7 +235,7 @@ class HistoryScreen extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 40),
             child: Text(
-              'Your plant analysis history will appear here after your first scan',
+              locale.your_plant_analysis_history_will_appear,
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: Colors.grey[600],
@@ -244,14 +247,12 @@ class HistoryScreen extends StatelessWidget {
           const SizedBox(height: 32),
           ElevatedButton.icon(
             icon: const Icon(Icons.photo_camera_rounded),
-            label: const Text('Start Your First Scan'),
+            label: Text(locale.start_your_first_scan),
             onPressed: () {
-              // Since we're using bottom navigation, we can't navigate "back" to home
-              // Instead, we'll show a message or you can implement navigation logic
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Use the camera button below to start scanning!'),
-                  backgroundColor: Color(0xFF2E7D32),
+                SnackBar(
+                  content: Text(locale.use_the_camera_button_below),
+                  backgroundColor: const Color(0xFF2E7D32),
                 ),
               );
             },
@@ -269,14 +270,14 @@ class HistoryScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildHistoryList(List<ScanHistory> scans, BuildContext context) {
+  Widget _buildHistoryList(List<ScanHistory> scans, BuildContext context, AppLocalizations locale) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Recent Scans (${scans.length})',
+            '${locale.recent_scans} (${scans.length})',
             style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
@@ -289,7 +290,7 @@ class HistoryScreen extends StatelessWidget {
               itemCount: scans.length,
               itemBuilder: (context, index) {
                 final scan = scans[index];
-                return _buildScanCard(scan, context);
+                return _buildScanCard(scan, context, locale);
               },
             ),
           ),
@@ -298,7 +299,7 @@ class HistoryScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildScanCard(ScanHistory scan, BuildContext context) {
+  Widget _buildScanCard(ScanHistory scan, BuildContext context, AppLocalizations locale) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       child: Material(
@@ -308,7 +309,7 @@ class HistoryScreen extends StatelessWidget {
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
           onTap: () {
-            _showScanDetails(context, scan);
+            _showScanDetails(context, scan, locale);
           },
           child: Container(
             padding: const EdgeInsets.all(20),
@@ -405,13 +406,13 @@ class HistoryScreen extends StatelessWidget {
                 Row(
                   children: [
                     _buildDetailChip(
-                      'Severity',
-                      scan.severity ?? 'N/A',
+                      locale.severity,
+                      scan.severity ?? locale.not_available,
                       const Color(0xFFD2EFDA),
                     ),
                     const SizedBox(width: 8),
                     _buildDetailChip(
-                      'Mode',
+                      locale.analysis_mode,
                       scan.isOnline ? 'Online' : 'Offline',
                       scan.isOnline ? const Color(0xFFD2EFDA) : const Color(0xFFE3F2FD),
                     ),
@@ -426,9 +427,9 @@ class HistoryScreen extends StatelessWidget {
                     Expanded(
                       child: OutlinedButton.icon(
                         icon: const Icon(Icons.visibility_rounded, size: 18),
-                        label: const Text('View Details'),
+                        label: Text(locale.view_details),
                         onPressed: () {
-                          _showScanDetails(context, scan);
+                          _showScanDetails(context, scan, locale);
                         },
                         style: OutlinedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 10),
@@ -446,7 +447,7 @@ class HistoryScreen extends StatelessWidget {
                         icon: const Icon(Icons.delete_outline_rounded, 
                             color: Colors.red, size: 20),
                         onPressed: () {
-                          _showDeleteDialog(context, scan);
+                          _showDeleteDialog(context, scan, locale);
                         },
                         style: IconButton.styleFrom(
                           backgroundColor: Colors.red.withOpacity(0.1),
@@ -502,16 +503,16 @@ class HistoryScreen extends StatelessWidget {
     return const Color(0xFFD32F2F); // Red
   }
 
-  void _showScanDetails(BuildContext context, ScanHistory scan) {
+  void _showScanDetails(BuildContext context, ScanHistory scan, AppLocalizations locale) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => _buildScanDetailsSheet(scan, context),
+      builder: (context) => _buildScanDetailsSheet(scan, context, locale),
     );
   }
 
-  Widget _buildScanDetailsSheet(ScanHistory scan, BuildContext context) {
+  Widget _buildScanDetailsSheet(ScanHistory scan, BuildContext context, AppLocalizations locale) {
     return Container(
       decoration: const BoxDecoration(
         color: Colors.white,
@@ -599,10 +600,10 @@ class HistoryScreen extends StatelessWidget {
             
             // Image Comparison Section
             if (scan.isOnline && (scan.originalImageUrl != null || scan.heatmapUrl != null))
-              _buildImageComparisonSection(scan),
+              _buildImageComparisonSection(scan, locale),
             
             // Details Section
-            _buildDetailsSection(scan),
+            _buildDetailsSection(scan, locale),
             
             const SizedBox(height: 32),
             
@@ -619,7 +620,7 @@ class HistoryScreen extends StatelessWidget {
                       ),
                       side: const BorderSide(color: Color(0xFF2E7D32)),
                     ),
-                    child: const Text('Close'),
+                    child: Text(locale.close),
                   ),
                 ),
               ],
@@ -632,13 +633,13 @@ class HistoryScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildImageComparisonSection(ScanHistory scan) {
+  Widget _buildImageComparisonSection(ScanHistory scan, AppLocalizations locale) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Image Analysis',
-          style: TextStyle(
+        Text(
+          locale.image_analysis,
+          style: const TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w600,
             color: Color(0xFF1B5E20),
@@ -651,9 +652,9 @@ class HistoryScreen extends StatelessWidget {
             Expanded(
               child: Column(
                 children: [
-                  const Text(
-                    'Original',
-                    style: TextStyle(
+                  Text(
+                    locale.original,
+                    style: const TextStyle(
                       fontWeight: FontWeight.w600,
                       fontSize: 14,
                       color: Color(0xFF1B5E20),
@@ -668,7 +669,7 @@ class HistoryScreen extends StatelessWidget {
                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(12),
-                      child: _buildHistoryImage(scan.originalImageUrl, 'Original Image'),
+                      child: _buildHistoryImage(scan.originalImageUrl, locale.original, locale),
                     ),
                   ),
                 ],
@@ -680,9 +681,9 @@ class HistoryScreen extends StatelessWidget {
             Expanded(
               child: Column(
                 children: [
-                  const Text(
-                    'Heatmap',
-                    style: TextStyle(
+                  Text(
+                    locale.heatmap,
+                    style: const TextStyle(
                       fontWeight: FontWeight.w600,
                       fontSize: 14,
                       color: Color(0xFF1B5E20),
@@ -697,7 +698,7 @@ class HistoryScreen extends StatelessWidget {
                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(12),
-                      child: _buildHistoryImage(scan.heatmapUrl, 'Heatmap'),
+                      child: _buildHistoryImage(scan.heatmapUrl, locale.heatmap, locale),
                     ),
                   ),
                 ],
@@ -711,13 +712,13 @@ class HistoryScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildDetailsSection(ScanHistory scan) {
+  Widget _buildDetailsSection(ScanHistory scan, AppLocalizations locale) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Scan Details',
-          style: TextStyle(
+        Text(
+          locale.scan_details,
+          style: const TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w600,
             color: Color(0xFF1B5E20),
@@ -725,14 +726,14 @@ class HistoryScreen extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         
-        _buildDetailItem('Severity', scan.severity ?? 'Not available'),
-        _buildDetailItem('Analysis Mode', scan.isOnline ? 'Online' : 'Offline'),
+        _buildDetailItem(locale.severity, scan.severity ?? locale.not_available),
+        _buildDetailItem(locale.analysis_mode, scan.isOnline ? 'Online' : 'Offline'),
         
         if (scan.treatment.isNotEmpty) ...[
           const SizedBox(height: 16),
-          const Text(
-            'Treatment Advice',
-            style: TextStyle(
+          Text(
+            locale.treatment_advice,
+            style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
               color: Color(0xFF1B5E20),
@@ -804,7 +805,7 @@ class HistoryScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildHistoryImage(String? imageUrl, String placeholder) {
+  Widget _buildHistoryImage(String? imageUrl, String placeholder, AppLocalizations locale) {
     if (imageUrl == null || imageUrl.isEmpty) {
       return Container(
         color: const Color(0xFFF8FDF8),
@@ -849,7 +850,7 @@ class HistoryScreen extends StatelessWidget {
               Icon(Icons.error_outline_rounded, color: Colors.grey[400], size: 30),
               const SizedBox(height: 4),
               Text(
-                'Image unavailable',
+                locale.image_unavailable,
                 style: TextStyle(color: Colors.grey[500], fontSize: 10),
               ),
             ],
@@ -859,16 +860,16 @@ class HistoryScreen extends StatelessWidget {
     );
   }
 
-  void _showDeleteDialog(BuildContext context, ScanHistory scan) {
+  void _showDeleteDialog(BuildContext context, ScanHistory scan, AppLocalizations locale) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete Scan?'),
-        content: Text('This will permanently delete the scan for "${scan.disease}" from your history.'),
+        title: Text(locale.delete_scan),
+        content: Text(locale.this_will_permanently_delete(scan.disease)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('CANCEL'),
+            child: Text(locale.cancel),
           ),
           TextButton(
             onPressed: () {
@@ -884,7 +885,7 @@ class HistoryScreen extends StatelessWidget {
                 );
               });
             },
-            child: const Text('DELETE', style: TextStyle(color: Colors.red)),
+            child: Text(locale.delete, style: const TextStyle(color: Colors.red)),
           ),
         ],
       ),
