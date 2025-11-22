@@ -27,6 +27,7 @@ class UserProfile {
       'farmSize': farmSize,
       'preferredLanguage': preferredLanguage,
       'createdAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(), // 🆕 Added updatedAt
     };
   }
 
@@ -37,7 +38,26 @@ class UserProfile {
       fullName: map['fullName'] ?? '',
       location: map['location'] ?? '',
       farmSize: (map['farmSize'] ?? 0.0).toDouble(),
-      preferredLanguage: map['preferredLanguage'] ?? 'English',
+      preferredLanguage: map['preferredLanguage'] ?? 'system', // 🆕 Default to 'system'
+    );
+  }
+
+  // 🆕 Add copyWith method for easy updates
+  UserProfile copyWith({
+    String? uid,
+    String? email,
+    String? fullName,
+    String? location,
+    double? farmSize,
+    String? preferredLanguage,
+  }) {
+    return UserProfile(
+      uid: uid ?? this.uid,
+      email: email ?? this.email,
+      fullName: fullName ?? this.fullName,
+      location: location ?? this.location,
+      farmSize: farmSize ?? this.farmSize,
+      preferredLanguage: preferredLanguage ?? this.preferredLanguage,
     );
   }
 }
@@ -77,22 +97,22 @@ class AuthService {
     }
   }
 
-Future<void> createUserProfile(UserProfile profile) async {
-  try {
-    print('🔄 Creating user profile in Firestore: ${profile.uid}');
-    print('📝 Profile data: ${profile.toMap()}');
-    
-    await _firestore
-        .collection('users')
-        .doc(profile.uid)
-        .set(profile.toMap());
-        
-    print('✅ User profile created successfully in Firestore');
-  } catch (e) {
-    print('❌ Failed to create user profile in Firestore: $e');
-    throw Exception('Failed to create user profile: $e');
+  Future<void> createUserProfile(UserProfile profile) async {
+    try {
+      print('🔄 Creating user profile in Firestore: ${profile.uid}');
+      print('📝 Profile data: ${profile.toMap()}');
+      
+      await _firestore
+          .collection('users')
+          .doc(profile.uid)
+          .set(profile.toMap());
+          
+      print('✅ User profile created successfully in Firestore');
+    } catch (e) {
+      print('❌ Failed to create user profile in Firestore: $e');
+      throw Exception('Failed to create user profile: $e');
+    }
   }
-}
 
   Future<UserProfile?> getUserProfile() async {
     try {
@@ -108,18 +128,42 @@ Future<void> createUserProfile(UserProfile profile) async {
       throw Exception('Failed to get user profile: $e');
     }
   }
-Future<bool> isUserLoggedIn() async {
-  try {
-    final user = _auth.currentUser;
-    final isLoggedIn = user != null;
-    print('🔐 Firebase current user: ${user?.uid}');
-    print('🔐 Is user logged in: $isLoggedIn');
-    return isLoggedIn;
-  } catch (e) {
-    print('❌ Error checking login status: $e');
-    return false;
+
+  Future<bool> isUserLoggedIn() async {
+    try {
+      final user = _auth.currentUser;
+      final isLoggedIn = user != null;
+      print('🔐 Firebase current user: ${user?.uid}');
+      print('🔐 Is user logged in: $isLoggedIn');
+      return isLoggedIn;
+    } catch (e) {
+      print('❌ Error checking login status: $e');
+      return false;
+    }
   }
-}
+
+  // 🆕 NEW: Update user's language preference
+  Future<void> updateUserLanguagePreference(String languageCode) async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) throw Exception('No user logged in');
+
+      print('🌐 Updating language preference to: $languageCode');
+      
+      await _firestore
+          .collection('users')
+          .doc(user.uid)
+          .update({
+        'preferredLanguage': languageCode,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      
+      print('✅ Language preference updated successfully in Firestore');
+    } catch (e) {
+      print('❌ Failed to update language preference: $e');
+      throw Exception('Failed to update language preference: $e');
+    }
+  }
 
   Future<void> signOut() async {
     await _auth.signOut();

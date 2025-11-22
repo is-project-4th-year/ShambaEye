@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../../services/auth_service.dart'; 
 import 'auth/login_screen.dart';
+import 'package:shamba_eye/gen_l10n/app_localizations.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -18,13 +19,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final _farmSizeController = TextEditingController();
   
   String _selectedLanguage = 'English';
-  final List<String> _languages = [
-    'English',
-    'Swahili',
-    'French',
-    'Spanish',
-    'Portuguese'
-  ];
+  
+  // Map language codes to display names
+  final Map<String, String> _languageMap = {
+    'en': 'English',
+    'sw': 'Swahili',
+    'fr': 'French',
+    'es': 'Spanish',
+    'pt': 'Portuguese'
+  };
+  
+  // Get display names for dropdown
+  List<String> get _languageDisplayNames => _languageMap.values.toList();
+  
+  // Convert display name to code
+  String _getLanguageCode(String displayName) {
+    return _languageMap.entries
+        .firstWhere((entry) => entry.value == displayName,
+            orElse: () => const MapEntry('en', 'English'))
+        .key;
+  }
+  
+  // Convert code to display name
+  String _getLanguageDisplayName(String? code) {
+    if (code == null || code.isEmpty) return 'English';
+    return _languageMap[code] ?? 'English';
+  }
 
   bool _isEditing = false;
   bool _isLoading = false;
@@ -43,7 +63,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _fullNameController.text = userProfile.fullName;
       _locationController.text = userProfile.location;
       _farmSizeController.text = userProfile.farmSize.toString();
-      _selectedLanguage = userProfile.preferredLanguage;
+      
+      // Convert language code to display name
+      _selectedLanguage = _getLanguageDisplayName(userProfile.preferredLanguage);
     }
   }
 
@@ -66,13 +88,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
         final currentUser = authProvider.userProfile;
 
         if (currentUser != null) {
-          final updatedProfile = UserProfile( // ✅ NOW DEFINED
+          // Convert display name back to language code for storage
+          final languageCode = _getLanguageCode(_selectedLanguage);
+          
+          final updatedProfile = UserProfile(
             uid: currentUser.uid,
             email: currentUser.email,
             fullName: _fullNameController.text.trim(),
             location: _locationController.text.trim(),
             farmSize: double.tryParse(_farmSizeController.text.trim()) ?? 0.0,
-            preferredLanguage: _selectedLanguage,
+            preferredLanguage: languageCode, // Store the code, not display name
           );
 
           await authProvider.createProfile(updatedProfile);
@@ -83,7 +108,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: const Text('Profile updated successfully!'),
+              content: Text(AppLocalizations.of(context)!.profile_updated_successfully),
               backgroundColor: const Color(0xFF2E7D32),
               behavior: SnackBarBehavior.floating,
             ),
@@ -92,7 +117,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to update profile: $e'),
+            content: Text('${AppLocalizations.of(context)!.failed_to_update_profile}: $e'),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
           ),
@@ -118,15 +143,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
   }
 
-void _navigateToLogin() {
-  Navigator.push(
-    context,
-    MaterialPageRoute(builder: (context) => LoginScreen()),
-  );
-}
+  void _navigateToLogin() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const LoginScreen()),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AppAuthProvider>(context);
+    final locale = AppLocalizations.of(context)!;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -137,27 +164,27 @@ void _navigateToLogin() {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Header
-              _buildHeader(context, authProvider),
+              _buildHeader(context, authProvider, locale),
               const SizedBox(height: 32),
               
               // Profile Card
-              _buildProfileCard(authProvider),
+              _buildProfileCard(authProvider, locale),
               const SizedBox(height: 24),
               
               // Stats Section - Only show when logged in
               if (authProvider.isLoggedIn) ...[
-                _buildStatsSection(),
+                _buildStatsSection(locale),
                 const SizedBox(height: 32),
               ],
               
               // Profile Details - Only show when logged in
               if (authProvider.isLoggedIn) ...[
-                _buildProfileDetails(context, authProvider),
+                _buildProfileDetails(context, authProvider, locale),
                 const SizedBox(height: 40),
               ],
               
               // Login/Logout Button
-              _buildAuthButton(context, authProvider),
+              _buildAuthButton(context, authProvider, locale),
             ],
           ),
         ),
@@ -165,27 +192,27 @@ void _navigateToLogin() {
     );
   }
 
-  Widget _buildHeader(BuildContext context, AppAuthProvider authProvider) {
+  Widget _buildHeader(BuildContext context, AppAuthProvider authProvider, AppLocalizations locale) {
     return Row(
       children: [
         const SizedBox(width: 48), // Placeholder for alignment
         const SizedBox(width: 12),
-        const Expanded(
+        Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Profile',
-                style: TextStyle(
+                locale.profile,
+                style: const TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.w700,
                   color: Color(0xFF1B5E20),
                 ),
               ),
-              SizedBox(height: 2),
+              const SizedBox(height: 2),
               Text(
-                'Manage your account and preferences',
-                style: TextStyle(
+                locale.manage_your_account_and_preferences,
+                style: const TextStyle(
                   fontSize: 14,
                   color: Colors.grey,
                   fontWeight: FontWeight.w400,
@@ -206,14 +233,14 @@ void _navigateToLogin() {
               icon: const Icon(Icons.edit_rounded, 
                   color: Color(0xFF2E7D32), size: 20),
               onPressed: _startEditing,
-              tooltip: 'Edit Profile',
+              tooltip: locale.edit_profile,
             ),
           ),
       ],
     );
   }
 
-  Widget _buildProfileCard(AppAuthProvider authProvider) {
+  Widget _buildProfileCard(AppAuthProvider authProvider, AppLocalizations locale) {
     if (!authProvider.isLoggedIn || authProvider.userProfile == null) {
       return Container(
         width: double.infinity,
@@ -226,23 +253,23 @@ void _navigateToLogin() {
             width: 1,
           ),
         ),
-        child: const Column(
+        child: Column(
           children: [
-            Icon(Icons.person_off_rounded, size: 48, color: Color(0xFF2E7D32)),
-            SizedBox(height: 12),
+            const Icon(Icons.person_off_rounded, size: 48, color: Color(0xFF2E7D32)),
+            const SizedBox(height: 12),
             Text(
-              'No Profile Found',
-              style: TextStyle(
+              locale.no_profile_found,
+              style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
                 color: Color(0xFF1B5E20),
               ),
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             Text(
-              'Please log in to view your profile',
+              locale.please_log_in_to_view_your_profile,
               textAlign: TextAlign.center,
-              style: TextStyle(
+              style: const TextStyle(
                 color: Color(0xFF1B5E20),
                 fontSize: 14,
               ),
@@ -332,7 +359,7 @@ void _navigateToLogin() {
     );
   }
 
-  Widget _buildStatsSection() {
+  Widget _buildStatsSection(AppLocalizations locale) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -353,9 +380,9 @@ void _navigateToLogin() {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Farm Overview',
-            style: TextStyle(
+          Text(
+            locale.farm_overview,
+            style: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w600,
               color: Color(0xFF1B5E20),
@@ -366,18 +393,18 @@ void _navigateToLogin() {
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               _buildStatItem(
-                'Farm Size',
-                '${_farmSizeController.text.isEmpty ? '0' : _farmSizeController.text} acres',
+                locale.farm_size,
+                '${_farmSizeController.text.isEmpty ? '0' : _farmSizeController.text} ${locale.acres}',
                 Icons.agriculture_rounded,
               ),
               _buildStatItem(
-                'Language',
+                locale.language,
                 _selectedLanguage,
                 Icons.language_rounded,
               ),
               _buildStatItem(
-                'Status',
-                'Active',
+                locale.status,
+                locale.active,
                 Icons.verified_rounded,
               ),
             ],
@@ -420,7 +447,7 @@ void _navigateToLogin() {
     );
   }
 
-  Widget _buildProfileDetails(BuildContext context, AppAuthProvider authProvider) {
+  Widget _buildProfileDetails(BuildContext context, AppAuthProvider authProvider, AppLocalizations locale) {
     if (!authProvider.isLoggedIn || authProvider.userProfile == null) {
       return const SizedBox();
     }
@@ -428,9 +455,9 @@ void _navigateToLogin() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Profile Details',
-          style: TextStyle(
+        Text(
+          locale.profile_details,
+          style: const TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.w600,
             color: Color(0xFF1B5E20),
@@ -438,7 +465,7 @@ void _navigateToLogin() {
         ),
         const SizedBox(height: 4),
         Text(
-          _isEditing ? 'Edit your information' : 'Your personal details',
+          _isEditing ? locale.edit_your_information : locale.your_personal_details,
           style: const TextStyle(
             fontSize: 14,
             color: Colors.grey,
@@ -452,61 +479,61 @@ void _navigateToLogin() {
           child: Column(
             children: [
               _buildDetailField(
-                label: 'Full Name',
+                label: locale.full_name,
                 controller: _fullNameController,
                 icon: Icons.person_rounded,
                 isEditable: _isEditing,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Please enter your full name';
+                    return locale.please_enter_your_full_name;
                   }
                   return null;
                 },
               ),
               const SizedBox(height: 16),
               _buildDetailField(
-                label: 'Email',
+                label: locale.email,
                 value: authProvider.userProfile!.email,
                 icon: Icons.email_rounded,
                 isEditable: false,
               ),
               const SizedBox(height: 16),
               _buildDetailField(
-                label: 'Location',
+                label: locale.location,
                 controller: _locationController,
                 icon: Icons.location_on_rounded,
                 isEditable: _isEditing,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Please enter your location';
+                    return locale.please_enter_your_location;
                   }
                   return null;
                 },
               ),
               const SizedBox(height: 16),
               _buildDetailField(
-                label: 'Farm Size (acres)',
+                label: '${locale.farm_size} (${locale.acres})',
                 controller: _farmSizeController,
                 icon: Icons.agriculture_rounded,
                 isEditable: _isEditing,
                 keyboardType: TextInputType.numberWithOptions(decimal: true),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Please enter farm size';
+                    return locale.please_enter_farm_size;
                   }
                   final farmSize = double.tryParse(value);
                   if (farmSize == null || farmSize <= 0) {
-                    return 'Please enter a valid farm size';
+                    return locale.please_enter_a_valid_farm_size;
                   }
                   return null;
                 },
               ),
               const SizedBox(height: 16),
-              _buildLanguageDropdown(),
+              _buildLanguageDropdown(locale),
               
               if (_isEditing) ...[
                 const SizedBox(height: 24),
-                _buildEditActions(),
+                _buildEditActions(locale),
               ],
             ],
           ),
@@ -583,13 +610,13 @@ void _navigateToLogin() {
     );
   }
 
-  Widget _buildLanguageDropdown() {
+  Widget _buildLanguageDropdown(AppLocalizations locale) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Preferred Language',
-          style: TextStyle(
+        Text(
+          locale.preferred_language,
+          style: const TextStyle(
             fontWeight: FontWeight.w600,
             color: Color(0xFF1B5E20),
             fontSize: 14,
@@ -614,7 +641,7 @@ void _navigateToLogin() {
                     borderSide: const BorderSide(color: Color(0xFF2E7D32), width: 2),
                   ),
                 ),
-                items: _languages.map((String language) {
+                items: _languageDisplayNames.map((String language) {
                   return DropdownMenuItem<String>(
                     value: language,
                     child: Text(language),
@@ -650,7 +677,7 @@ void _navigateToLogin() {
     );
   }
 
-  Widget _buildEditActions() {
+  Widget _buildEditActions(AppLocalizations locale) {
     return Row(
       children: [
         Expanded(
@@ -663,9 +690,9 @@ void _navigateToLogin() {
               ),
               side: const BorderSide(color: Color(0xFF2E7D32)),
             ),
-            child: const Text(
-              'CANCEL',
-              style: TextStyle(
+            child: Text(
+              locale.cancel.toUpperCase(),
+              style: const TextStyle(
                 color: Color(0xFF2E7D32),
                 fontWeight: FontWeight.w600,
               ),
@@ -693,9 +720,9 @@ void _navigateToLogin() {
                       valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                     ),
                   )
-                : const Text(
-                    'SAVE CHANGES',
-                    style: TextStyle(fontWeight: FontWeight.w600),
+                : Text(
+                    locale.save_changes.toUpperCase(),
+                    style: const TextStyle(fontWeight: FontWeight.w600),
                   ),
           ),
         ),
@@ -703,19 +730,19 @@ void _navigateToLogin() {
     );
   }
 
-  Widget _buildAuthButton(BuildContext context, AppAuthProvider authProvider) {
+  Widget _buildAuthButton(BuildContext context, AppAuthProvider authProvider, AppLocalizations locale) {
     return Center(
       child: SizedBox(
         width: double.infinity,
         child: authProvider.isLoggedIn
             ? OutlinedButton.icon(
                 onPressed: () {
-                  _showLogoutDialog(context);
+                  _showLogoutDialog(context, locale);
                 },
                 icon: const Icon(Icons.logout_rounded, color: Colors.red),
-                label: const Text(
-                  'Logout',
-                  style: TextStyle(color: Colors.red, fontWeight: FontWeight.w600),
+                label: Text(
+                  locale.logout,
+                  style: const TextStyle(color: Colors.red, fontWeight: FontWeight.w600),
                 ),
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
@@ -728,9 +755,9 @@ void _navigateToLogin() {
             : ElevatedButton.icon(
                 onPressed: _navigateToLogin,
                 icon: const Icon(Icons.login_rounded, color: Colors.white),
-                label: const Text(
-                  'Login',
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                label: Text(
+                  locale.login,
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
                 ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF2E7D32),
@@ -744,7 +771,7 @@ void _navigateToLogin() {
     );
   }
 
-  void _showLogoutDialog(BuildContext context) {
+  void _showLogoutDialog(BuildContext context, AppLocalizations locale) {
     showDialog(
       context: context,
       builder: (context) => Dialog(
@@ -764,19 +791,19 @@ void _navigateToLogin() {
                 child: const Icon(Icons.logout_rounded, color: Colors.red, size: 30),
               ),
               const SizedBox(height: 16),
-              const Text(
-                'Logout?',
-                style: TextStyle(
+              Text(
+                locale.logout_question,
+                style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w600,
                   color: Color(0xFF1B5E20),
                 ),
               ),
               const SizedBox(height: 8),
-              const Text(
-                'Are you sure you want to logout?',
+              Text(
+                locale.are_you_sure_you_want_to_logout,
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: const TextStyle(
                   color: Colors.grey,
                   fontSize: 14,
                 ),
@@ -793,7 +820,7 @@ void _navigateToLogin() {
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      child: const Text('CANCEL'),
+                      child: Text(locale.cancel.toUpperCase()),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -811,7 +838,7 @@ void _navigateToLogin() {
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      child: const Text('LOGOUT'),
+                      child: Text(locale.logout.toUpperCase()),
                     ),
                   ),
                 ],
