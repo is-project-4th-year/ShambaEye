@@ -13,17 +13,39 @@ interface User {
     preferredLanguage?: string;
 }
 
+interface Scan {
+    disease: string;
+    severity: string;
+    confidence: number;
+    isOnline: boolean;
+    userId: string;
+    timestamp: { _seconds: number; _nanoseconds: number };
+    treatment: {
+        type: string;
+        symptoms: string;
+        chemical_treatment: string;
+        organic_treatment: string;
+        prevention: string;
+    };
+    originalImageUrl?: string;
+}
+
 export default function Users() {
     const [users, setUsers] = useState<User[]>([]);
+    const [scans, setScans] = useState<Scan[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [isScansModalOpen, setIsScansModalOpen] = useState(false);
+    const [userScans, setUserScans] = useState<Scan[]>([]);
+    const [scansLoading, setScansLoading] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
 
     useEffect(() => {
         fetchUsers();
+        fetchScans();
     }, []);
 
     const fetchUsers = async () => {
@@ -37,6 +59,15 @@ export default function Users() {
         }
     };
 
+    const fetchScans = async () => {
+        try {
+            const response = await axios.get('/api/scans');
+            setScans(response.data.scans || []);
+        } catch (error) {
+            console.error('Error fetching scans:', error);
+        }
+    };
+
     const handleEdit = (user: User) => {
         setSelectedUser(user);
         setIsEditModalOpen(true);
@@ -45,6 +76,23 @@ export default function Users() {
     const handleDelete = (user: User) => {
         setSelectedUser(user);
         setIsDeleteModalOpen(true);
+    };
+
+    const handleViewScans = async (user: User) => {
+        setSelectedUser(user);
+        setScansLoading(true);
+        setIsScansModalOpen(true);
+
+        try {
+            // Filter scans for this specific user
+            const userScansData = scans.filter(scan => scan.userId === user.uid);
+            setUserScans(userScansData);
+        } catch (error) {
+            console.error('Error fetching user scans:', error);
+            alert('Failed to load user scans');
+        } finally {
+            setScansLoading(false);
+        }
     };
 
     const confirmDelete = async () => {
@@ -79,7 +127,6 @@ export default function Users() {
         try {
             const response = await axios.post('/api/users', newUser);
             if (response.data.success) {
-                // Refresh the users list to include the new user
                 fetchUsers();
                 setIsAddModalOpen(false);
             } else {
@@ -96,6 +143,18 @@ export default function Users() {
         user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         user.location?.toLowerCase().includes(searchTerm.toLowerCase())
     );
+
+    // Calculate user stats
+    const getUserScanStats = (userId: string) => {
+        const userScans = scans.filter(scan => scan.userId === userId);
+        return {
+            totalScans: userScans.length,
+            uniqueDiseases: new Set(userScans.map(scan => scan.disease)).size,
+            avgConfidence: userScans.length > 0
+                ? userScans.reduce((acc, scan) => acc + (scan.confidence || 0), 0) / userScans.length
+                : 0
+        };
+    };
 
     if (loading) {
         return (
@@ -155,16 +214,11 @@ export default function Users() {
                     <div className="bg-white p-4 rounded-lg shadow border border-gray-100">
                         <div className="flex items-center">
                             <div className="bg-purple-100 p-3 rounded-lg mr-4">
-                                <span className="text-purple-600 text-2xl">🏠</span>
+                                <span className="text-purple-600 text-2xl">🔍</span>
                             </div>
                             <div>
-                                <p className="text-gray-500 text-sm">Avg Farm Size</p>
-                                <p className="text-2xl font-bold text-gray-900">
-                                    {users.length > 0
-                                        ? Math.round(users.reduce((acc, user) => acc + (user.farmSize || 0), 0) / users.length)
-                                        : 0
-                                    } acres
-                                </p>
+                                <p className="text-gray-500 text-sm">Total Scans</p>
+                                <p className="text-2xl font-bold text-gray-900">{scans.length}</p>
                             </div>
                         </div>
                     </div>
@@ -175,13 +229,11 @@ export default function Users() {
                                 <span className="text-orange-600 text-2xl">📅</span>
                             </div>
                             <div>
-                                <p className="text-gray-500 text-sm">New This Month</p>
+                                <p className="text-gray-500 text-sm">Active Users</p>
                                 <p className="text-2xl font-bold text-gray-900">
                                     {users.filter(user => {
-                                        const userDate = new Date(user.createdAt?._seconds * 1000 || user.createdAt);
-                                        const monthAgo = new Date();
-                                        monthAgo.setMonth(monthAgo.getMonth() - 1);
-                                        return userDate > monthAgo;
+                                        const userScans = scans.filter(scan => scan.userId === user.uid);
+                                        return userScans.length > 0;
                                     }).length}
                                 </p>
                             </div>
@@ -232,6 +284,9 @@ export default function Users() {
                                         Farm Details
                                     </th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Scan Stats
+                                    </th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Joined
                                     </th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -242,7 +297,7 @@ export default function Users() {
                             <tbody className="bg-white divide-y divide-gray-200">
                                 {filteredUsers.length === 0 ? (
                                     <tr>
-                                        <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
+                                        <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
                                             <div className="flex flex-col items-center">
                                                 <span className="text-4xl mb-2">👥</span>
                                                 <p className="text-lg">No users found</p>
@@ -251,59 +306,75 @@ export default function Users() {
                                         </td>
                                     </tr>
                                 ) : (
-                                    filteredUsers.map((user) => (
-                                        <tr key={user.uid} className="hover:bg-gray-50 transition-colors">
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="flex items-center">
-                                                    <div className="flex-shrink-0 h-10 w-10 bg-green-500 rounded-full flex items-center justify-center text-white font-bold">
-                                                        {user.fullName?.[0]?.toUpperCase() || 'U'}
-                                                    </div>
-                                                    <div className="ml-4">
-                                                        <div className="text-sm font-medium text-gray-900">
-                                                            {user.fullName || 'No Name'}
+                                    filteredUsers.map((user) => {
+                                        const scanStats = getUserScanStats(user.uid);
+                                        return (
+                                            <tr key={user.uid} className="hover:bg-gray-50 transition-colors">
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <div className="flex items-center">
+                                                        <div className="flex-shrink-0 h-10 w-10 bg-green-500 rounded-full flex items-center justify-center text-white font-bold">
+                                                            {user.fullName?.[0]?.toUpperCase() || 'U'}
                                                         </div>
-                                                        <div className="text-sm text-gray-500">
-                                                            {user.preferredLanguage || 'English'}
+                                                        <div className="ml-4">
+                                                            <div className="text-sm font-medium text-gray-900">
+                                                                {user.fullName || 'No Name'}
+                                                            </div>
+                                                            <div className="text-sm text-gray-500">
+                                                                {user.preferredLanguage || 'English'}
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="text-sm text-gray-900">{user.email}</div>
-                                                <div className="text-sm text-gray-500">{user.location || 'Not specified'}</div>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="text-sm text-gray-900">
-                                                    {user.farmSize ? `${user.farmSize} acres` : 'Not specified'}
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                {user.createdAt?._seconds
-                                                    ? new Date(user.createdAt._seconds * 1000).toLocaleDateString()
-                                                    : 'Unknown'
-                                                }
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                                <div className="flex space-x-2">
-                                                    <button
-                                                        onClick={() => handleEdit(user)}
-                                                        className="text-blue-600 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 px-3 py-1 rounded text-xs transition-colors"
-                                                    >
-                                                        Edit
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleDelete(user)}
-                                                        className="text-red-600 hover:text-red-900 bg-red-50 hover:bg-red-100 px-3 py-1 rounded text-xs transition-colors"
-                                                    >
-                                                        Delete
-                                                    </button>
-                                                    <button className="text-green-600 hover:text-green-900 bg-green-50 hover:bg-green-100 px-3 py-1 rounded text-xs transition-colors">
-                                                        View Scans
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <div className="text-sm text-gray-900">{user.email}</div>
+                                                    <div className="text-sm text-gray-500">{user.location || 'Not specified'}</div>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <div className="text-sm text-gray-900">
+                                                        {user.farmSize ? `${user.farmSize} acres` : 'Not specified'}
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <div className="text-sm">
+                                                        <div className="text-gray-900">
+                                                            {scanStats.totalScans} scans
+                                                        </div>
+                                                        <div className="text-gray-500 text-xs">
+                                                            {scanStats.uniqueDiseases} diseases • {(scanStats.avgConfidence * 100).toFixed(1)}% avg confidence
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                    {user.createdAt?._seconds
+                                                        ? new Date(user.createdAt._seconds * 1000).toLocaleDateString()
+                                                        : 'Unknown'
+                                                    }
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                                    <div className="flex space-x-2">
+                                                        <button
+                                                            onClick={() => handleEdit(user)}
+                                                            className="text-blue-600 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 px-3 py-1 rounded text-xs transition-colors"
+                                                        >
+                                                            Edit
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleDelete(user)}
+                                                            className="text-red-600 hover:text-red-900 bg-red-50 hover:bg-red-100 px-3 py-1 rounded text-xs transition-colors"
+                                                        >
+                                                            Delete
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleViewScans(user)}
+                                                            className="text-green-600 hover:text-green-900 bg-green-50 hover:bg-green-100 px-3 py-1 rounded text-xs transition-colors"
+                                                        >
+                                                            View Scans
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })
                                 )}
                             </tbody>
                         </table>
@@ -341,12 +412,26 @@ export default function Users() {
                         onSave={handleAddUser}
                     />
                 )}
+
+                {/* View Scans Modal */}
+                {isScansModalOpen && selectedUser && (
+                    <ViewScansModal
+                        user={selectedUser}
+                        scans={userScans}
+                        loading={scansLoading}
+                        onClose={() => {
+                            setIsScansModalOpen(false);
+                            setSelectedUser(null);
+                            setUserScans([]);
+                        }}
+                    />
+                )}
             </div>
         </div>
     );
 }
 
-// Edit User Modal Component
+// Edit User Modal Component (unchanged)
 function EditUserModal({ user, onClose, onSave }: { user: User; onClose: () => void; onSave: (user: User) => void }) {
     const [formData, setFormData] = useState(user);
 
@@ -419,7 +504,7 @@ function EditUserModal({ user, onClose, onSave }: { user: User; onClose: () => v
     );
 }
 
-// Delete Confirmation Modal Component
+// Delete Confirmation Modal Component (unchanged)
 function DeleteConfirmationModal({ user, onClose, onConfirm }: { user: User; onClose: () => void; onConfirm: () => void }) {
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
@@ -451,14 +536,14 @@ function DeleteConfirmationModal({ user, onClose, onConfirm }: { user: User; onC
     );
 }
 
-// Add User Modal Component
+// Add User Modal Component (unchanged)
 function AddUserModal({ onClose, onSave }: { onClose: () => void; onSave: (user: any) => void }) {
     const [formData, setFormData] = useState({
         fullName: '',
         email: '',
         location: '',
         farmSize: 0,
-        password: 'TempPassword123!', // Default password
+        password: 'TempPassword123!',
         preferredLanguage: 'en'
     });
 
@@ -543,6 +628,111 @@ function AddUserModal({ onClose, onSave }: { onClose: () => void; onSave: (user:
                         </button>
                     </div>
                 </form>
+            </div>
+        </div>
+    );
+}
+
+// View Scans Modal Component (NEW)
+function ViewScansModal({ user, scans, loading, onClose }: { user: User; scans: Scan[]; loading: boolean; onClose: () => void }) {
+    const formatDiseaseName = (disease: string) => {
+        return disease.replace('Tomato___', '').replace(/_/g, ' ');
+    };
+
+    const formatDate = (timestamp: { _seconds: number; _nanoseconds: number }) => {
+        return new Date(timestamp._seconds * 1000).toLocaleDateString() + ' ' +
+            new Date(timestamp._seconds * 1000).toLocaleTimeString();
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden">
+                <div className="p-6 border-b border-gray-200">
+                    <div className="flex justify-between items-center">
+                        <h2 className="text-xl font-semibold text-gray-900">
+                            Scan History - {user.fullName}
+                        </h2>
+                        <button
+                            onClick={onClose}
+                            className="text-gray-400 hover:text-gray-600 text-2xl"
+                        >
+                            ×
+                        </button>
+                    </div>
+                    <p className="text-gray-600 mt-1">
+                        {scans.length} total scans • {new Set(scans.map(scan => scan.disease)).size} unique diseases
+                    </p>
+                </div>
+
+                <div className="overflow-y-auto max-h-[calc(90vh-120px)]">
+                    {loading ? (
+                        <div className="p-8 text-center">
+                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto"></div>
+                            <p className="text-gray-600 mt-4">Loading scans...</p>
+                        </div>
+                    ) : scans.length === 0 ? (
+                        <div className="p-8 text-center">
+                            <div className="text-6xl mb-4">🔍</div>
+                            <h3 className="text-lg font-semibold text-gray-700 mb-2">No Scans Found</h3>
+                            <p className="text-gray-500">This user hasn't performed any plant scans yet.</p>
+                        </div>
+                    ) : (
+                        <div className="p-6">
+                            <div className="space-y-4">
+                                {scans.map((scan, index) => (
+                                    <div key={index} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                                        <div className="flex justify-between items-start mb-3">
+                                            <div>
+                                                <h3 className="font-semibold text-gray-900">
+                                                    {formatDiseaseName(scan.disease)}
+                                                </h3>
+                                                <p className="text-sm text-gray-500">
+                                                    {formatDate(scan.timestamp)} • {scan.isOnline ? 'Online' : 'Offline'} Analysis
+                                                </p>
+                                            </div>
+                                            <div className="text-right">
+                                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${scan.severity === 'Severe' ? 'bg-red-100 text-red-800' :
+                                                        scan.severity === 'Moderate' ? 'bg-orange-100 text-orange-800' :
+                                                            'bg-green-100 text-green-800'
+                                                    }`}>
+                                                    {scan.severity || 'Unknown'}
+                                                </span>
+                                                <div className="text-sm text-gray-500 mt-1">
+                                                    {(scan.confidence * 100).toFixed(1)}% confidence
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                                            <div>
+                                                <h4 className="font-medium text-gray-700 mb-1">Treatment Type</h4>
+                                                <p className="text-gray-600">{scan.treatment?.type || 'Not specified'}</p>
+                                            </div>
+                                            <div>
+                                                <h4 className="font-medium text-gray-700 mb-1">Symptoms</h4>
+                                                <p className="text-gray-600">{scan.treatment?.symptoms || 'No symptoms recorded'}</p>
+                                            </div>
+                                        </div>
+
+                                        {scan.originalImageUrl && (
+                                            <div className="mt-3">
+                                                <a
+                                                    href={scan.originalImageUrl}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="text-blue-600 hover:text-blue-800 text-sm flex items-center gap-1"
+                                                >
+                                                    <span>📷</span>
+                                                    View Original Image
+                                                </a>
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     );
