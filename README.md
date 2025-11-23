@@ -130,7 +130,7 @@ In Firebase:
 * Click “Generate new private key”
 * Download the JSON file
 
-##### **ii. Add credentials to .env.local
+##### **ii. Add credentials to .env.local**
 Inside the ```shambaeye-admin`` folder, create the environment file:
 ```zsh
 cd shambaeye-admin
