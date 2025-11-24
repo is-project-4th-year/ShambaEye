@@ -7,7 +7,7 @@ import '../../core/config.dart';
 import '../../services/api_service.dart';
 import '../../services/local_model_service.dart';
 import '../../services/firestore_service.dart';
-import '../../services/analysis_model.dart'; // 🆕 Use shared model
+import '../../services/analysis_model.dart';
 
 class AnalysisProvider with ChangeNotifier {
   String? _imagePath;
@@ -92,32 +92,108 @@ class AnalysisProvider with ChangeNotifier {
     }
   }
 
-  Future<void> _analyzeOffline() async {
+Future<void> _analyzeOffline() async {
+  try {
+    print("📥 Loading local model...");
+    await _localModelService.loadModel();
+
+    print("🤖 Running offline inference with Grad-CAM...");
+    final result = await _localModelService.analyzeImage(_imagePath!);
+
+    // 🆕 DEBUG: Check if heatmap path exists
+    print('🔍 Heatmap path from local model: ${result['heatmapPath']}');
+    if (result['heatmapPath'] != null) {
+      final heatmapFile = File(result['heatmapPath']!);
+      print('🔍 Heatmap file exists: ${heatmapFile.existsSync()}');
+      if (heatmapFile.existsSync()) {
+        print('🔍 Heatmap file size: ${heatmapFile.lengthSync()} bytes');
+      }
+    } else {
+      print('❌ HEATMAP PATH IS NULL - This is the problem!');
+    }
+
+    // 🆕 USE THE NEW GRAD-CAM AND SEVERITY FEATURES
+    _lastResult = AnalysisResult(
+      disease: result['disease'],
+      confidence: result['confidence'].toDouble(),
+      treatment: result['treatment'],
+      severity: result['severity'], // 🆕 NOW INCLUDES SEVERITY
+      heatmapUrl: result['heatmapPath'], // 🆕 NOW INCLUDES GRAD-CAM
+      isOnline: false,
+      timestamp: DateTime.now(),
+    );
+
+    _history.add(_lastResult!);
+    
+    print('✅ Offline scan complete with Grad-CAM visualization');
+    print('📊 Severity: ${result['severity']}');
+    print('🎨 Heatmap: ${result['heatmapPath']}');
+
+    _isLoading = false;
+    notifyListeners();
+  } catch (e) {
+    print('❌ ERROR during offline analysis: $e');
+    print('❌ Stack trace: ${e.toString()}');
+    throw Exception('Offline analysis failed: $e');
+  }
+}
+
+  // 🆕 NEW: Get the heatmap file for display
+  File? getHeatmapFile() {
+    if (_lastResult?.heatmapUrl != null && _lastResult!.heatmapUrl!.startsWith('/')) {
+      return File(_lastResult!.heatmapUrl!);
+    }
+    return null;
+  }
+
+  // 🆕 NEW: Check if current result has Grad-CAM
+  bool get hasGradCAM => _lastResult?.heatmapUrl != null;
+
+  // 🆕 NEW: Get severity color for UI
+  Color getSeverityColor() {
+    final severity = _lastResult?.severity?.toLowerCase();
+    switch (severity) {
+      case 'severe':
+        return Colors.red;
+      case 'moderate':
+        return Colors.orange;
+      case 'mild':
+        return Colors.green;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  // 🆕 NEW: Get severity icon for UI
+  IconData getSeverityIcon() {
+    final severity = _lastResult?.severity?.toLowerCase();
+    switch (severity) {
+      case 'severe':
+        return Icons.warning;
+      case 'moderate':
+        return Icons.info;
+      case 'mild':
+        return Icons.check_circle;
+      default:
+        return Icons.help;
+    }
+  }
+
+  // 🆕 NEW: Clean up temporary heatmap files
+  void cleanupHeatmaps() {
     try {
-      print("📥 Loading local model...");
-      await _localModelService.loadModel();       // <-- REQUIRED
-
-      print("🤖 Running offline inference...");
-      final result = await _localModelService.analyzeImage(_imagePath!);
-
-      _lastResult = AnalysisResult(
-        disease: result['disease'],
-        confidence: result['confidence'].toDouble(),
-        treatment: result['treatment'],
-        severity: null,
-        heatmapUrl: null,
-        isOnline: false,
-        timestamp: DateTime.now(),
-      );
-
-      _history.add(_lastResult!);
-      // Skip saving offline scans to Firestore
-      print('ℹ️ Offline scan complete — not saving to Firestore');
-
-      _isLoading = false;
-      notifyListeners();
+      for (final result in _history) {
+        if (result.heatmapUrl != null && 
+            result.heatmapUrl!.startsWith('${Directory.systemTemp.path}/')) {
+          final file = File(result.heatmapUrl!);
+          if (file.existsSync()) {
+            file.deleteSync();
+          }
+        }
+      }
+      print('🧹 Cleaned up temporary heatmap files');
     } catch (e) {
-      throw Exception('Offline analysis failed: $e');
+      print('⚠️ Error cleaning up heatmaps: $e');
     }
   }
 
@@ -150,8 +226,17 @@ class AnalysisProvider with ChangeNotifier {
   }
 
   void clearHistory() {
+    // Clean up heatmap files before clearing history
+    cleanupHeatmaps();
     _history.clear();
     notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    // Clean up when provider is disposed
+    cleanupHeatmaps();
+    super.dispose();
   }
 
   // Load/Save history for persistence (optional)
@@ -163,4 +248,4 @@ class AnalysisProvider with ChangeNotifier {
   List<Map<String, dynamic>> getHistoryData() {
     return _history.map((result) => result.toMap()).toList();
   }
-} // <-- THIS WAS THE MISSING CLOSING BRACE
+}

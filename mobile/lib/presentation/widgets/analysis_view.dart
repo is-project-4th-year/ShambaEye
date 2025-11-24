@@ -328,7 +328,7 @@ class AnalysisView extends StatelessWidget {
     );
   }
 
-  Widget _buildHeatmapSection(BuildContext context, AnalysisProvider provider, String heatmapUrl, AppLocalizations locale) {
+  Widget _buildHeatmapSection(BuildContext context, AnalysisProvider provider, String heatmapUrl, bool isOnline, AppLocalizations locale) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
@@ -350,17 +350,43 @@ class AnalysisView extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            locale.disease_visualization,
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF1B5E20),
-            ),
+          Row(
+            children: [
+              Icon(
+                Icons.auto_awesome_rounded,
+                color: const Color(0xFF2E7D32),
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Disease Visualization',
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF1B5E20),
+                ),
+              ),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE8F5E8),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  isOnline ? 'Online' : 'Offline',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF2E7D32),
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 8),
           Text(
-            locale.heatmap_showing_affected_areas,
+            'Heatmap showing affected areas',
             style: TextStyle(
               color: Colors.grey[600],
               fontSize: 14,
@@ -376,7 +402,7 @@ class AnalysisView extends StatelessWidget {
                 child: Column(
                   children: [
                     Text(
-                      locale.original,
+                      'Original',
                       style: const TextStyle(
                         fontWeight: FontWeight.w600,
                         fontSize: 14,
@@ -413,13 +439,24 @@ class AnalysisView extends StatelessWidget {
               Expanded(
                 child: Column(
                   children: [
-                    Text(
-                      locale.heatmap,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14,
-                        color: Color(0xFF1B5E20),
-                      ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.heat_pump_rounded,
+                          size: 16,
+                          color: const Color(0xFF2E7D32),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Heatmap',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                            color: Color(0xFF1B5E20),
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 8),
                     Container(
@@ -430,7 +467,7 @@ class AnalysisView extends StatelessWidget {
                       ),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(12),
-                        child: _buildHeatmapImage(heatmapUrl, locale),
+                        child: _buildHeatmapImage(heatmapUrl, isOnline),
                       ),
                     ),
                   ],
@@ -443,7 +480,7 @@ class AnalysisView extends StatelessWidget {
           
           // Full Size Heatmap
           Text(
-            locale.detailed_view,
+            'Detailed View',
             style: const TextStyle(
               fontWeight: FontWeight.w600,
               fontSize: 14,
@@ -460,7 +497,38 @@ class AnalysisView extends StatelessWidget {
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(12),
-              child: _buildHeatmapImage(heatmapUrl, locale),
+              child: _buildHeatmapImage(heatmapUrl, isOnline),
+            ),
+          ),
+          
+          // Grad-CAM Explanation
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF1F8E9),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: const Color(0xFFC5E1A5)),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.lightbulb_outline_rounded,
+                  color: const Color(0xFF7CB342),
+                  size: 16,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Heatmap colors indicate disease concentration: Blue (low) → Green → Yellow → Red (high)',
+                    style: TextStyle(
+                      color: const Color(0xFF33691E),
+                      fontSize: 12,
+                      height: 1.4,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -468,37 +536,51 @@ class AnalysisView extends StatelessWidget {
     );
   }
 
-  Widget _buildHeatmapImage(String heatmapUrl, AppLocalizations locale) {
-    return Image.network(
-      heatmapUrl,
-      fit: BoxFit.cover,
-      loadingBuilder: (context, child, loadingProgress) {
-        if (loadingProgress == null) return child;
-        return Container(
-          color: const Color(0xFFD2EFDA),
-          child: const Center(
-            child: CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF2E7D32)),
-            ),
-          ),
-        );
-      },
-      errorBuilder: (context, error, stackTrace) {
-        return Container(
-          color: const Color(0xFFD2EFDA),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.error_outline_rounded, color: Color(0xFF2E7D32), size: 40),
-              const SizedBox(height: 8),
-              Text(
-                locale.heatmap_not_available,
-                style: const TextStyle(color: Color(0xFF2E7D32), fontSize: 12),
+  Widget _buildHeatmapImage(String heatmapUrl, bool isOnline) {
+    if (isOnline) {
+      return Image.network(
+        heatmapUrl,
+        fit: BoxFit.cover,
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) return child;
+          return Container(
+            color: const Color(0xFFD2EFDA),
+            child: Center(
+              child: CircularProgressIndicator(
+                valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF2E7D32)),
               ),
-            ],
+            ),
+          );
+        },
+        errorBuilder: (context, error, stackTrace) {
+          return _buildHeatmapErrorState();
+        },
+      );
+    } else {
+      return Image.file(
+        File(heatmapUrl),
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          return _buildHeatmapErrorState();
+        },
+      );
+    }
+  }
+
+  Widget _buildHeatmapErrorState() {
+    return Container(
+      color: const Color(0xFFD2EFDA),
+      child: const Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.error_outline_rounded, color: Color(0xFF2E7D32), size: 40),
+          SizedBox(height: 8),
+          Text(
+            'Heatmap not available',
+            style: TextStyle(color: Color(0xFF2E7D32), fontSize: 12),
           ),
-        );
-      },
+        ],
+      ),
     );
   }
 
@@ -529,7 +611,7 @@ class AnalysisView extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  result.isOnline ? locale.online_analysis : locale.offline_analysis,
+                  result.isOnline ? 'Online Analysis' : 'Offline Analysis',
                   style: TextStyle(
                     fontWeight: FontWeight.w600,
                     color: result.isOnline ? const Color(0xFF1B5E20) : const Color(0xFF0D47A1),
@@ -538,9 +620,26 @@ class AnalysisView extends StatelessWidget {
                 if (!result.isOnline) ...[
                   const SizedBox(width: 8),
                   Text(
-                    locale.basic_detection,
+                    'Basic Detection',
                     style: TextStyle(
                       color: const Color(0xFF1B5E20).withOpacity(0.6),
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+                const Spacer(),
+                if (result.severity != null) ...[
+                  Icon(
+                    provider.getSeverityIcon(),
+                    color: provider.getSeverityColor(),
+                    size: 16,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    result.severity!,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: provider.getSeverityColor(),
                       fontSize: 12,
                     ),
                   ),
@@ -552,7 +651,7 @@ class AnalysisView extends StatelessWidget {
           const SizedBox(height: 24),
           
           Text(
-            locale.analysis_results,
+            'Analysis Results',
             style: const TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.w700,
@@ -563,26 +662,31 @@ class AnalysisView extends StatelessWidget {
 
           // Disease Card
           _buildResultCard(
-            title: locale.disease_detection,
+            title: 'Disease Detection',
             children: [
-              _buildResultRow(locale.disease, result.disease),
-              _buildResultRow(locale.confidence, '${(result.confidence * 100).toStringAsFixed(1)}%'),
+              _buildResultRow('Disease', result.disease),
+              _buildResultRow('Confidence', '${(result.confidence * 100).toStringAsFixed(1)}%'),
               if (result.severity != null)
-                _buildResultRow(locale.severity, result.severity!),
+                _buildResultRowWithIcon(
+                  'Severity', 
+                  result.severity!,
+                  provider.getSeverityIcon(),
+                  provider.getSeverityColor(),
+                ),
             ],
           ),
 
           const SizedBox(height: 16),
 
-          // Grad-CAM Heatmap Section - Only for online mode
-          if (result.isOnline && result.heatmapUrl != null)
-            _buildHeatmapSection(context, provider, result.heatmapUrl!, locale),
+          // Grad-CAM Heatmap Section
+          if (result.heatmapUrl != null && provider.hasGradCAM)
+            _buildHeatmapSection(context, provider, result.heatmapUrl!, result.isOnline, locale),
 
           const SizedBox(height: 16),
 
           // Treatment Card
           _buildResultCard(
-            title: locale.treatment_advice,
+            title: 'Treatment Advice',
             children: [
               _buildTreatmentSection(result.treatment, locale),
             ],
@@ -596,7 +700,7 @@ class AnalysisView extends StatelessWidget {
               Expanded(
                 child: OutlinedButton.icon(
                   icon: const Icon(Icons.photo_library_rounded),
-                  label: Text(locale.new_analysis),
+                  label: const Text('New Analysis'),
                   onPressed: () => provider.clearResults(),
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 14),
@@ -611,9 +715,9 @@ class AnalysisView extends StatelessWidget {
               Expanded(
                 child: ElevatedButton.icon(
                   icon: const Icon(Icons.share_rounded),
-                  label: Text(locale.share_results),
+                  label: const Text('Share Results'),
                   onPressed: () {
-                    // Will add share functionality later
+                    _showShareDialog(context);
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF2E7D32),
@@ -628,7 +732,6 @@ class AnalysisView extends StatelessWidget {
             ],
           ),
           
-          // Online features reminder for offline users
           if (!result.isOnline) ...[
             const SizedBox(height: 16),
             Container(
@@ -644,13 +747,26 @@ class AnalysisView extends StatelessWidget {
                       color: Color(0xFF2E7D32), size: 20),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: Text(
-                      locale.login_for_full_features,
-                      style: TextStyle(
-                        color: const Color(0xFF1B5E20),
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                      ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Login for full features',
+                          style: TextStyle(
+                            color: Color(0xFF1B5E20),
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Get access to cloud storage, advanced analytics, and historical tracking',
+                          style: TextStyle(
+                            color: const Color(0xFF1B5E20).withOpacity(0.7),
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -729,28 +845,64 @@ class AnalysisView extends StatelessWidget {
     );
   }
 
+  Widget _buildResultRowWithIcon(String label, String value, IconData icon, Color color) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          Text(
+            '$label: ',
+            style: const TextStyle(
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF1B5E20),
+            ),
+          ),
+          Expanded(
+            child: Row(
+              children: [
+                Icon(
+                  icon,
+                  color: color,
+                  size: 16,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  value,
+                  style: TextStyle(
+                    color: Colors.grey[700],
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildTreatmentSection(Map<String, dynamic> treatment, AppLocalizations locale) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (treatment['advice'] != null)
-          _buildTreatmentItem(locale.general_advice, treatment['advice']),
+          _buildTreatmentItem('General Advice', treatment['advice']),
         
         if (treatment['organic_treatment'] != null)
-          _buildTreatmentItem(locale.organic_treatment, treatment['organic_treatment']),
+          _buildTreatmentItem('Organic Treatment', treatment['organic_treatment']),
         
         if (treatment['chemical_treatment'] != null)
-          _buildTreatmentItem(locale.chemical_treatment, treatment['chemical_treatment']),
+          _buildTreatmentItem('Chemical Treatment', treatment['chemical_treatment']),
         
         if (treatment['prevention'] != null)
-          _buildTreatmentItem(locale.prevention, treatment['prevention']),
+          _buildTreatmentItem('Prevention', treatment['prevention']),
           
-        // Fallback for simple treatment structure
         if (treatment['advice'] == null && 
             treatment['organic_treatment'] == null && 
             treatment['chemical_treatment'] == null && 
             treatment['prevention'] == null)
-          _buildTreatmentItem(locale.advice, treatment['advice'] ?? locale.no_specific_treatment_advice),
+          _buildTreatmentItem('Advice', treatment['advice'] ?? 'No specific treatment advice available'),
       ],
     );
   }
@@ -777,6 +929,22 @@ class AnalysisView extends StatelessWidget {
               fontSize: 14,
               height: 1.4,
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showShareDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Share Results'),
+        content: const Text('Share feature coming soon!'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('OK'),
           ),
         ],
       ),
