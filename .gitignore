@@ -26,8 +26,7 @@ venv.bak/
 *.DS_Store
 
 # Colab/Notebook artifacts
-.ipynb_checkpoints/
-*.ipynb
+
 *.csv
 *.json
 *.zip
